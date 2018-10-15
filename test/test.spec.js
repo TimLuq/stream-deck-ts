@@ -39,29 +39,19 @@ mockery.enable({
 });
 
 // Must be required after we register a mock for `node-hid`.
-const StreamDeck = require('../');
-
-test.beforeEach(t => {
-	t.context.streamDeck = new StreamDeck();
-});
-
-test('constructor uses the provided devicePath', t => {
-	const devicePath = 'some_random_path_here';
-	const streamDeck = new StreamDeck(devicePath);
-	t.is(streamDeck.device.path, devicePath);
-});
+const {selectDevice} = require('../');
 
 test('errors if no devicePath is provided and there are no connected Stream Decks', t => {
 	const devicesStub = sinon.stub(mockNodeHID, 'devices');
 	devicesStub.returns([]);
 	t.throws(() => {
-		new StreamDeck(); // eslint-disable-line no-new
+		selectDevice(); // eslint-disable-line no-new
 	}, /No Stream Decks are connected./);
 	devicesStub.restore();
 });
 
 test('fillColor', t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	streamDeck.fillColor(0, 255, 0, 0);
 	validateWriteCall(
 		t,
@@ -74,7 +64,7 @@ test('fillColor', t => {
 });
 
 test('checkRGBValue', t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	t.throws(() => streamDeck.fillColor(0, 256, 0, 0));
 	t.throws(() => streamDeck.fillColor(0, 0, 256, 0));
 	t.throws(() => streamDeck.fillColor(0, 0, 0, 256));
@@ -82,13 +72,13 @@ test('checkRGBValue', t => {
 });
 
 test('checkValidKeyIndex', t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	t.throws(() => streamDeck.clearKey(-1));
 	t.throws(() => streamDeck.clearKey(15));
 });
 
 test('clearKey', t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	const fillColorSpy = sinon.spy(streamDeck, 'fillColor');
 	streamDeck.clearKey(0);
 	t.true(fillColorSpy.calledOnce);
@@ -96,7 +86,7 @@ test('clearKey', t => {
 });
 
 test('clearAllKeys', t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	const clearKeySpy = sinon.spy(streamDeck, 'clearKey');
 	streamDeck.clearAllKeys();
 	t.is(clearKeySpy.callCount, 15);
@@ -106,7 +96,7 @@ test('clearAllKeys', t => {
 });
 
 test('fillImageFromFile', async t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	await streamDeck.fillImageFromFile(0, path.resolve(__dirname, 'fixtures/nodecg_logo.png'));
 	validateWriteCall(
 		t,
@@ -119,7 +109,7 @@ test('fillImageFromFile', async t => {
 });
 
 test('fillPanel', async t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	const fillImageSpy = sinon.spy(streamDeck, 'fillImage');
 	await streamDeck.fillPanel(path.resolve(__dirname, 'fixtures/mosaic.png'));
 
@@ -149,7 +139,7 @@ test('fillPanel', async t => {
 });
 
 test('down and up events', t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	const downSpy = sinon.spy();
 	const upSpy = sinon.spy();
 	streamDeck.on('down', key => downSpy(key));
@@ -162,7 +152,7 @@ test('down and up events', t => {
 });
 
 test.cb('forwards error events from the device', t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	streamDeck.on('error', () => {
 		t.pass();
 		t.end();
@@ -171,13 +161,13 @@ test.cb('forwards error events from the device', t => {
 });
 
 test('fillImage throws on undersized buffers', t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	const smallBuffer = Buffer.alloc(1);
 	t.throws(() => streamDeck.fillImage(0, smallBuffer));
 });
 
 test('setBrightness', t => {
-	const streamDeck = t.context.streamDeck;
+	const streamDeck = selectDevice();
 	streamDeck.setBrightness(100);
 	streamDeck.setBrightness(0);
 
