@@ -1,23 +1,31 @@
-# elgato-stream-deck [![npm version](https://img.shields.io/npm/v/elgato-stream-deck.svg)](https://npm.im/elgato-stream-deck) [![license](https://img.shields.io/npm/l/elgato-stream-deck.svg)](https://npm.im/elgato-stream-deck) [![Travis](https://travis-ci.org/Lange/node-elgato-stream-deck.svg?branch=master)](https://travis-ci.org/Lange/node-elgato-stream-deck) [![Coverage Status](https://coveralls.io/repos/github/Lange/node-elgato-stream-deck/badge.svg?branch=master)](https://coveralls.io/github/Lange/node-elgato-stream-deck?branch=master) [![Join the chat at https://gitter.im/node-elgato-stream-deck/Lobby](https://badges.gitter.im/node-elgato-stream-deck/Lobby.svg)](https://gitter.im/node-elgato-stream-deck/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+# elgato-stream-deck
+[![npm version](https://img.shields.io/npm/v/stream-deck-ts.svg)](https://npm.im/stream-deck-ts)
+[![license](https://img.shields.io/npm/l/stream-deck-ts.svg)](https://npm.im/stream-deck-ts)
 
-![alt text](media/streamdeck_ui.png "elgato-stream-deck")
 
-[`elgato-stream-deck`](https://github.com/lange/elgato-stream-deck) is a Node.js library for interfacing
-with the [Elgato Stream Deck](https://www.elgato.com/en/gaming/stream-deck).
-
-> ❗ Please note that `node-elgato-stream-deck` is **NOT a standalone application**. It is not something you download and run on its own. It is not an alternative to the [official Stream Deck program provided by Elgato](https://www.elgato.com/en/gaming/downloads). Instead, `node-elgato-stream-deck` is a code library which provides an API to the Stream Deck. Developers can use this API to make their own applications which interface with the Stream Deck.
+> ❗ Please note that `stream-deck-ts` is **NOT a standalone application**. It is not something you download and run on its own. It is not an alternative to the [official Stream Deck program provided by Elgato](https://www.elgato.com/en/gaming/downloads). Instead, `stream-deck-ts` is a code library which provides an API to the Stream Deck. Developers can use this API to make their own applications which interface with the Stream Deck.
 >
 > To further clarify: **this is not an installable program**. There is no user interface, and you cannot do anything with this library on its own. Out of the box, this library does nothing. It's purpose is to provide tools for programmers to **build** programs from the ground up which interact with a Stream Deck.
 >
 > This is a tool for developers to use. It is not a program for end users. It cannot and will not replace the official Stream Deck program. That is not its goal. However, it does enable someone to more easily write a program which *does* do that.
 
+
+## Supported devices
+
+Any additional devices would be appriciated. If you are able to control another device than those listed - please send a PR.
+
+### Elgato
+- [Elgato Stream Deck](products/elgato/elgato-stream-deck.md).
+- [Elgato Stream Deck Mini](products/elgato/elgato-stream-deck-mini.md).
+
+
 ## Install
 
-`$ npm install --save elgato-stream-deck`
+`$ npm install --save stream-deck-ts`
 
-All of this library's native dependencies ship with prebuilt binaries, so having a full compiler toolchain should not be necessary to install `node-elgato-stream-deck`.
+All of this library's native dependencies ship with prebuilt binaries, so having a full compiler toolchain should not be necessary to install `stream-deck-ts`.
 
-However, in the event that installation _does_ fail (**or if you are on a platform that our dependencies don't provide prebuilt binaries for, such as a Raspberry Pi**), you will need to install a compiler toolchain to enable npm to build some of `node-elgato-stream-deck`'s dependencies from source. Expand the details block below for full instructions on how to do so.
+However, in the event that installation _does_ fail (**or if you are on a platform that our dependencies don't provide prebuilt binaries for, such as a Raspberry Pi**), you will need to install a compiler toolchain to enable npm to build some of `stream-deck-ts`'s dependencies from source. Expand the details block below for full instructions on how to do so.
 
 <details>
 	<summary>Compiling dependencies from source</summary>
@@ -72,26 +80,26 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
   * [`error`](#error)
 * [Protocol Notes](#protocol-notes)
 
-### Example
-
-#### JavaScript
+## Example
 
 ```javascript
-const path = require('path');
-const StreamDeck = require('elgato-stream-deck');
+import { resolve } from "path";
+import { selectDevice } from "stream-deck-ts";
 
 // Automatically discovers connected Stream Decks, and attaches to the first one.
-// Throws if there are no connected stream decks.
-// You also have the option of providing the devicePath yourself as the first argument to the constructor.
-// For example: const myStreamDeck = new StreamDeck('\\\\?\\hid#vid_05f3&pid_0405&mi_00#7&56cf813&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}')
-// Device paths can be obtained via node-hid: https://github.com/node-hid/node-hid
-const myStreamDeck = new StreamDeck();
+// Returns `null` if there are no connected stream decks.
+// You also have the option of providing the numeric vendor identifier and product identifier.
+// For example: `const myStreamDeck = selectDevice(VENDOR_ELGATO, PRODUCT_ELGATO_STREAMDECK_MINI);`
+const myStreamDeck = selectDevice();
+if (!myStreamDeck) {
+	throw new Error("No StreamDeck found.");
+}
 
-myStreamDeck.on('down', keyIndex => {
+myStreamDeck.on('down', (keyIndex) => {
 	console.log('key %d down', keyIndex);
 });
 
-myStreamDeck.on('up', keyIndex => {
+myStreamDeck.on('up', (keyIndex) => {
 	console.log('key %d up', keyIndex);
 });
 
@@ -103,7 +111,7 @@ myStreamDeck.on('error', error => {
 
 // Fill the second button from the left in the first row with an image of the GitHub logo.
 // This is asynchronous and returns a promise.
-myStreamDeck.fillImageFromFile(3, path.resolve(__dirname, 'github_logo.png')).then(() => {
+myStreamDeck.fillImageFromFile(3, resolve(__dirname, 'github_logo.png')).then(() => {
 	console.log('Successfully wrote a GitHub logo to key 3.');
 });
 
@@ -112,28 +120,7 @@ myStreamDeck.fillColor(4, 255, 0, 0);
 console.log('Successfully wrote a red square to key 4.');
 ```
 
-#### TypeScript
-
-```typescript
-import StreamDeck = require('elgato-stream-deck');
-const myStreamDeck = new StreamDeck(); // Will throw an error if no Stream Decks are connected.
-
-myStreamDeck.on('down', keyIndex => {
-	console.log('key %d down', keyIndex);
-});
-
-myStreamDeck.on('up', keyIndex => {
-	console.log('key %d up', keyIndex);
-});
-
-// Fired whenever an error is detected by the `node-hid` library.
-// Always add a listener for this event! If you don't, errors will be silently dropped.
-myStreamDeck.on('error', error => {
-	console.error(error);
-});
-```
-
-### Features
+## Features
 
 * Multiplatform support: Windows 7-10, MacOS, Linux, and even Raspberry Pi!
 * Key `down` and key `up` events
@@ -142,7 +129,7 @@ myStreamDeck.on('error', error => {
 * Set the Stream Deck brightness
 * TypeScript support
 
-### Planned Features
+## Planned Features
 
 * [Hotplugging](https://github.com/Lange/node-elgato-stream-deck/issues/14)
 * [Key combinations](https://github.com/Lange/node-elgato-stream-deck/issues/9)
@@ -150,7 +137,7 @@ myStreamDeck.on('error', error => {
 * [Text labels](https://github.com/Lange/node-elgato-stream-deck/issues/6)
 * [Changing the standby image](https://github.com/Lange/node-elgato-stream-deck/issues/11)
 
-### Contributing
+## Contributing
 
 The elgato-stream-deck team enthusiastically welcomes contributions and project participation! There's a bunch of things you can do if you want to contribute! The [Contributor Guide](CONTRIBUTING.md) has all the information you need for everything from reporting bugs to contributing entire new features. Please don't hesitate to jump in if you'd like to, or even ask us questions if something isn't clear.
 
@@ -158,29 +145,98 @@ All participants and maintainers in this project are expected to follow [Code of
 
 Please refer to the [Changelog](CHANGELOG.md) for project history details, too.
 
-### API
+## API
 
-#### <a name="write"></a> `> streamDeck.write(buffer) -> undefined`
+### selectDevice([vendor[, product]])
+
+- `vendor` &lt;number&gt; An optional vendor identity number to limit which device will be selected.
+- `product` &lt;number&gt; An optional product identity number to limit which device will be selected.
+- Returns: &lt;[StreamDeck](#Class_StreamDeck) | null&gt;
+
+Select the first supported device. If no supported device is found `null` is returned.
+
+### selectAllDevices([vendor[, product]])
+
+- `vendor` &lt;number&gt; An optional vendor identity number to limit which devices will be selected.
+- `product` &lt;number&gt; An optional product identity number to limit which devices will be selected.
+- Returns: &lt;Array&lt;[StreamDeck](#Class_StreamDeck)&gt;&gt;
+
+Select the first supported device. If no supported device is found `null` is returned.
+
+### Class: StreamDeck
+
+Instances of the `StreamDeck` class have an active connection to a device.
+
+#### Event: 'down'
+
+- `keyIndex` &lt;number&gt; The index of the key that got pressed.
+
+The `down` event is triggered when a button on the Stream Deck has been pressed down.
+
+#### Event: 'up'
+
+- `keyIndex` &lt;number&gt; The index of the key that got released.
+
+The `up` event is triggered when a button on the Stream Deck has been released which previously had been pressed down.
+
+#### streamDeck.buttonColumns
+
+- &lt;number&gt;
+
+Returns the number of button columns available to this `StreamDeck`.
+
+#### streamDeck.buttonLength
+
+- &lt;number&gt;
+
+Returns the number of buttons available to this `StreamDeck`.
+
+#### streamDeck.buttonRows
+
+- &lt;number&gt;
+
+Returns the number of button rows available to this `StreamDeck`.
+
+#### streamDeck.iconSize
+
+- &lt;number&gt;
+
+Returns the size in pixels used for icons.
+
+#### streamDeck.forEachKey(callback)
+
+- `callback` &lt;Function&gt; The function to call for each button in the stream deck.
+- Returns: &lt;StreamDeck&gt;
+
+Execute a function for each button available to the `StreamDeck`.
+
+#### streamDeck.write(buffer)`
+
+- `buffer` &lt;[Buffer](https://nodejs.org/api/buffer.html) | Uint8Array&gt; Data to write.
+- Returns: &lt;StreamDeck&gt;
 
 Synchronously writes an arbitrary [`Buffer`](https://nodejs.org/api/buffer.html) instance to the Stream Deck.
 Throws if an error is encountered during the write operation.
 
-##### Example
+##### Example: write a number of zeros to the stream deck
 
 ```javascript
 // Writes 16 bytes of zero to the Stream Deck.
 streamDeck.write(Buffer.alloc(16));
 ```
 
-#### <a name="fill-color"></a> `> streamDeck.fillColor(keyIndex, r, g, b) -> undefined`
+#### streamDeck.fillColor(keyIndex, rgb)`
+
+- `keyIndex` &lt;number&gt; Key to affect.
+- `rgb` &lt;number&gt; Fill color.
 
 Synchronously sets the given `keyIndex`'s screen to a solid RGB color.
 
-##### Example
+##### Example: set button 4 to solid red
 
 ```javascript
-// Turn key 4 (the top left key) solid red.
-streamDeck.fillColor(4, 255, 0, 0);
+// Turn key 4 solid red.
+streamDeck.fillColor(4, 0xFF0000);
 ```
 
 #### <a name="fill-image-from-file"></a> `> streamDeck.fillImageFromFile(keyIndex, filePath) -> Promise`
@@ -315,7 +371,3 @@ streamDeck.on('error', error => {
 	console.error(error);
 });
 ```
-
-### Protocol Notes
-
-Raw protocol notes can be found in [NOTES.md](NOTES.md). These detail the protocol and method for interacting with the Stream Deck which this module implements.

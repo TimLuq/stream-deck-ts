@@ -1,7 +1,7 @@
 {
-  "name": "elgato-stream-deck",
-  "version": "2.1.1",
-  "description": "An npm module for interfacing with the Elgato Stream Deck",
+  "name": "stream-deck-ts",
+  "version": "1.0.0",
+  "description": "An npm module for interfacing with a stream deck",
   "main": "index.js",
   "typings": "build/exports.d.ts",
   "dependencies": {
@@ -12,40 +12,34 @@
     "@types/node": "^10.11.7",
     "@types/node-hid": "^0.7.0",
     "@types/sharp": "^0.17.10",
-    "ava": "^0.23.0",
+    "ava": "^0.25.0",
     "coveralls": "^3.0.2",
-    "eslint": "^4.19.1",
-    "eslint-config-xo": "^0.19.0",
-    "eslint-plugin-ava": "^4.5.1",
     "mockery": "^2.1.0",
     "nyc": "^11.9.0",
     "pureimage": "0.1.3",
     "sinon": "^4.5.0",
     "standard-version": "^4.4.0",
-    "stream-buffers": "^3.0.2",
-    "weallbehave": "^1.2.0",
-    "weallcontribute": "^1.0.8"
+    "stream-buffers": "^3.0.2"
   },
   "scripts": {
     "prerelease": "npm t",
     "release": "standard-version",
     "postrelease": "npm publish && git push --follow-tags",
-    "pretest": "npm run static",
     "test": "nyc ava",
     "report": "nyc report --reporter=html",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
-    "static": "eslint .",
-    "update-coc": "weallbehave -o . && git add CODE_OF_CONDUCT.md && git commit -m 'docs(coc): updated CODE_OF_CONDUCT.md'",
-    "update-contrib": "weallcontribute -o . && git add CONTRIBUTING.md && git commit -m 'docs(contributing): updated CONTRIBUTING.md'"
+    "update-coc": "npx weallbehave -o . && git add CODE_OF_CONDUCT.md && git commit -m 'docs(coc): updated CODE_OF_CONDUCT.md'",
+    "update-contrib": "npx weallcontribute -o . && git add CONTRIBUTING.md && git commit -m 'docs(contributing): updated CONTRIBUTING.md'"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Lange/node-elgato-stream-deck.git"
+    "url": "git+https://github.com/TimLuq/node-elgato-stream-deck.git"
   },
   "keywords": [
     "elgato",
     "stream",
     "deck",
+    "mini",
     "streamdeck",
     "hid",
     "usb",
@@ -54,12 +48,17 @@
     "controller"
   ],
   "author": {
-    "name": "Alex Van Camp",
-    "email": "email@alexvan.camp",
-    "url": "https://alexvan.camp/",
-    "twitter": "vancamp"
+    "name": "Tim Lundqvist",
+    "url": "https://github.com/TimLuq",
+    "twitter": "TimLuq"
   },
   "contributors": [
+    {
+      "name": "Alex Van Camp",
+      "email": "email@alexvan.camp",
+      "url": "https://alexvan.camp/",
+      "twitter": "vancamp"
+    },
     {
       "name": "Richard Fox",
       "twitter": "ProbablePrime"
@@ -73,16 +72,15 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Lange/node-elgato-stream-deck/issues"
+    "url": "https://github.com/TimLuq/node-elgato-stream-deck/issues"
   },
-  "homepage": "https://github.com/Lange/node-elgato-stream-deck#readme",
+  "homepage": "https://github.com/TimLuq/node-elgato-stream-deck#readme",
   "eslintConfig": {
     "extends": "xo/esnext"
   },
   "files": [
     "*.js",
-    "typings.d.ts",
-    "lib"
+    "build"
   ],
   "engines": {
     "node": ">=7.6"
