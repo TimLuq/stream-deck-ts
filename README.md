@@ -66,19 +66,29 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
 * [Planned Features](#planned-features)
 * [Contributing](#contributing)
 * [API](#api)
-  * [`write`](#write)
-  * [`fillColor`](#fill-color)
-  * [`fillImageFromFile`](#fill-image-from-file)
-  * [`fillImage`](#fill-image)
-  * [`fillPanel`](#fill-panel)
-  * [`clearKey`](#clear-key)
-  * [`clearAllKeys`](#clear-all-keys)
-  * [`setBrightness`](#set-brightness)
-* [Events](#events)
-  * [`down`](#down)
-  * [`up`](#up)
-  * [`error`](#error)
-* [Protocol Notes](#protocol-notes)
+  * [selectDevice([vendor[, product]])](#selectdevice-vendor-product)
+  * [selectAllDevices([vendor[, product]])](#selectalldevices-vendor-product)
+  * [Class: StreamDeck](#class-streamdeck)
+    * [Event: 'down'](#event-down)
+    * [Event: 'up'](#event-up)
+    * [Event: 'error'](#event-error)
+	* [streamDeck.buttonColumns](#streamdeck-buttoncolumns)
+	* [streamDeck.buttonLength](#streamdeck-buttonLength)
+	* [streamDeck.buttonRows](#streamdeck-buttonRows)
+	* [streamDeck.iconSize](#streamdeck-iconSize)
+	* [streamDeck.buttonIndexFromPosition(x, y)](#streamdeck-buttonindexfromposition-x-y)
+	* [streamDeck.checkValidKeyIndex(keyIndex)](#streamDeck-checkvalidkeyindex-keyindex)
+	* [streamDeck.clearAllKeys()](#streamdeck-clearallkeys)
+	* [streamDeck.clearKey(keyIndex)](#streamdeck-clearkey-keyIndex)
+	* [streamDeck.fillColor(keyIndex, rgb)](#streamdeck-fillcolor-keyindex-rgb)
+	* [streamDeck.fillColor(keyIndex, r, g, b)](#streamdeck-fillcolor-keyindex-r-g-b)
+	* [streamDeck.fillImage(keyIndex, buffer)](#streamdeck-fillimage-keyindex-buffer)
+	* [streamDeck.fillImageFromFile(keyIndex, filePath)](#streamdeck-fillimagefromfile-keyindex-filepath)
+	* [streamDeck.fillPanel(imagePathOrBuffer[, sharpOptions])](#streamdeck-fillpanel-imagepathorbuffer-sharpoptions)
+	* [streamDeck.forEachKey(callback)](#streamdeck-foreachkey-callback)
+    * [streamDeck.sendFeatureReport(buffer)](#streamdeck-sendfeaturereport-buffer)
+    * [streamDeck.setBrightness(percentage)](#streamdeck-setbrightness-percentage)
+	* [streamDeck.write(buffer)](#streamdeck-write-buffer)
 
 ## Example
 
@@ -179,6 +189,13 @@ The `down` event is triggered when a button on the Stream Deck has been pressed 
 
 The `up` event is triggered when a button on the Stream Deck has been released which previously had been pressed down.
 
+#### Event: 'error'
+
+- `error` &lt;Error&gt; The index of the key that got released.
+
+Fired whenever an error is detected by the `node-hid` library.
+**Always** add a listener for this event! If you don't, errors will be silently dropped.
+
 #### streamDeck.buttonColumns
 
 - &lt;number&gt;
@@ -203,29 +220,50 @@ Returns the number of button rows available to this `StreamDeck`.
 
 Returns the size in pixels used for icons.
 
-#### streamDeck.forEachKey(callback)
+#### streamDeck.buttonIndexFromPosition(x, y)
 
-- `callback` &lt;Function&gt; The function to call for each button in the stream deck.
+- `x` &lt;number&gt; Cloumn number counted from from the left.
+- `y` &lt;number&gt; Row number counted from from the top.
+- Returns: &lt;number&gt; The `keyIndex` at the given position or `undefined` if out of bounds.
+
+Get the `keyIndex` at a specific column and row.
+
+#### streamDeck.checkValidKeyIndex(keyIndex)
+
+- `keyIndex` &lt;number&gt; Cloumn number counted from from the left.
+- `y` &lt;number&gt; Row number counted from from the top.
+- Returns: &lt;number&gt; The `keyIndex` at the given position or `undefined` if out of bounds.
+
+Validate a `keyIndex`. If the number is not valid the function will throw a `TypeError`, otherwise the same value will be returned.
+
+#### streamDeck.clearAllKeys()
+
 - Returns: &lt;StreamDeck&gt;
 
-Execute a function for each button available to the `StreamDeck`.
+Synchronously clears all keys on the device.
 
-#### streamDeck.write(buffer)`
-
-- `buffer` &lt;[Buffer](https://nodejs.org/api/buffer.html) | Uint8Array&gt; Data to write.
-- Returns: &lt;StreamDeck&gt;
-
-Synchronously writes an arbitrary [`Buffer`](https://nodejs.org/api/buffer.html) instance to the Stream Deck.
-Throws if an error is encountered during the write operation.
-
-##### Example: write a number of zeros to the stream deck
+##### Example: clear all keys
 
 ```javascript
-// Writes 16 bytes of zero to the Stream Deck.
-streamDeck.write(Buffer.alloc(16));
+// Clear all keys.
+streamDeck.clearAllKeys();
 ```
 
-#### streamDeck.fillColor(keyIndex, rgb)`
+#### streamDeck.clearKey(keyIndex)
+
+- `keyIndex` &lt;number&gt; Key to affect.
+- Returns: &lt;StreamDeck&gt;
+
+Synchronously clears the given `keyIndex`'s screen.
+
+##### Example: clear button 2
+
+```javascript
+// Clear button 2.
+streamDeck.clearKey(2);
+```
+
+#### streamDeck.fillColor(keyIndex, rgb)
 
 - `keyIndex` &lt;number&gt; Key to affect.
 - `rgb` &lt;number&gt; Fill color.
@@ -239,135 +277,126 @@ Synchronously sets the given `keyIndex`'s screen to a solid RGB color.
 streamDeck.fillColor(4, 0xFF0000);
 ```
 
-#### <a name="fill-image-from-file"></a> `> streamDeck.fillImageFromFile(keyIndex, filePath) -> Promise`
+#### streamDeck.fillColor(keyIndex, r, g, b)
+
+- `keyIndex` &lt;number&gt; Key to affect.
+- `r` &lt;number&gt; Red component between `0` - `255`.
+- `g` &lt;number&gt; Green component between `0` - `255`.
+- `b` &lt;number&gt; Blue component between `0` - `255`.
+
+Synchronously sets the given `keyIndex`'s screen to a solid RGB color.
+
+##### Example: set button 5 to solid blue
+
+```javascript
+// Turn key 5 solid red.
+streamDeck.fillColor(5, 0, 0, 0xFF);
+```
+
+#### streamDeck.fillImage(keyIndex, buffer)
+
+- `keyIndex` &lt;number&gt; Key to affect.
+- `buffer` &lt;[Buffer](https://nodejs.org/api/buffer.html)&gt; Image bytes.
+- Returns: &lt;Promise&lt;StreamDeck&gt;&gt;
+
+Synchronously writes a buffer of `streamDeck.iconSize` * `streamDeck.iconSize` RGB image data to the given `keyIndex`'s screen.
+The buffer must be exactly the expected length of bytes. Any other length will result in an error being thrown.
+
+##### Example: fill button 2 with an image of the GitHub logo
+
+```javascript
+// Fill button 2 with an image of the GitHub logo.
+import * as sharp from "sharp"; // See http://sharp.dimens.io/en/stable/ for full docs on this great library!
+import { resolve } from "path";
+
+const filepath = resolve(__dirname, 'github_logo.png');
+const buffer = await sharp(filepath)
+	.flatten() // Eliminate alpha channel, if any.
+	.resize(streamDeck.iconSize, streamDeck.iconSize) // Scale up/down to the right size, cropping if necessary.
+	.raw() // Give us uncompressed RGB.
+	.toBuffer();
+
+streamDeck.fillImage(2, buffer);
+```
+
+#### streamDeck.fillImageFromFile(keyIndex, filePath)
+
+- `keyIndex` &lt;number&gt; Key to affect.
+- `filePath` &lt;string&gt; File system path to an image file.
+- Returns: &lt;Promise&lt;StreamDeck&gt;&gt;
 
 Asynchronously reads an image from `filePath` and sets the given `keyIndex`'s screen to that image.
-Automatically scales the image to 72x72 and strips out the alpha channel.
+Automatically scales the image to the expected height and width and strips out the alpha channel.
 If necessary, the image will be center-cropped to fit into a square.
 
-##### Example
+##### Example: fill the button 3 with an image of the GitHub logo
 
 ```javascript
-// Fill the second button from the left in the first row with an image of the GitHub logo.
-streamDeck.fillImageFromFile(3, path.resolve(__dirname, 'github_logo.png'))
-	.then(() => {
-		console.log('Successfully wrote a GitHub logo to key 3.');
-	})
-	.catch(err => {
-		console.error(err);
-	});
+// Fill the button 3 with an image of the GitHub logo.
+await streamDeck.fillImageFromFile(3, path.resolve(__dirname, 'github_logo.png'));
+console.log('Successfully wrote a GitHub logo to key 3.');
 ```
 
-#### <a name="fill-image"></a> `> streamDeck.fillImage(keyIndex, buffer) -> undefined`
+#### streamDeck.fillPanel(imagePathOrBuffer[, sharpOptions])
 
-Synchronously writes a buffer of 72x72 RGB image data to the given `keyIndex`'s screen.
-The buffer must be exactly 15552 bytes in length. Any other length will result in an error being thrown.
-
-##### Example
-
-```javascript
-// Fill the third button from the left in the first row with an image of the GitHub logo.
-const sharp = require('sharp'); // See http://sharp.dimens.io/en/stable/ for full docs on this great library!
-sharp(path.resolve(__dirname, 'github_logo.png'))
-	.flatten() // Eliminate alpha channel, if any.
-	.resize(streamDeck.ICON_SIZE, streamDeck.ICON_SIZE) // Scale up/down to the right size, cropping if necessary.
-	.raw() // Give us uncompressed RGB.
-	.toBuffer()
-	.then(buffer => {
-		return streamDeck.fillImage(2, buffer);
-	})
-	.catch(err => {
-		console.error(err);
-	});
-```
-
-#### <a name="fill-panel"></a> `> streamDeck.fillPanel(imagePathOrBuffer[, sharpOptions]) -> Promise`
+- `imagePathOrBuffer` &lt;string | [Buffer](https://nodejs.org/api/buffer.html)&gt; Image data or path to a file.
+- `sharpOptions` &lt;object&gt; Optional options object to be passed to the `sharp` image library.
+- Returns: &lt;Promise&lt;StreamDeck&gt;&gt;
 
 Asynchronously applies an image to the entire panel, spreading it over all keys. The image is scaled down and center-cropped to fit. This method does not currently account for the gaps between keys, and behaves as if each key was directly connected to its neighbors. If you wish to account for the gaps between keys, you'll need to do so via other means, and bake that into the image you provide to `fillPanel`.
 
 This method accepts either a path to an image on the disk, or a buffer. The image path or buffer is passed directly to [`sharp`](https://github.com/lovell/sharp). Therefore, this method accepts all images and buffers which `sharp` can accept.
 
-##### Example
+##### Example: fill the entire panel with a photo of a sunny field
 
 ```javascript
 // Fill the entire panel with a photo of a sunny field.
-streamDeck.fillPanel(path.resolve(__dirname, 'examples/fixtures/sunny_field.png'))
-	.then(() => {
-		console.log('Successfully filled the panel with an image.');
-	})
-	.catch(err => {
-		console.error(err);
-	});
+import { resolve } from "path";
+
+const filepath = resolve(__dirname, 'examples/fixtures/sunny_field.png');
+await streamDeck.fillPanel(filepath);
+console.log('Successfully filled the panel with an image.');
 ```
 
-#### <a name="clear-key"></a> `> streamDeck.clearKey(keyIndex) -> undefined`
+#### streamDeck.forEachKey(callback)
 
-Synchronously clears the given `keyIndex`'s screen.
+- `callback` &lt;Function&gt; The function to call for each button in the stream deck.
+- Returns: &lt;StreamDeck&gt;
 
-##### Example
+Execute a function for each button available to the `StreamDeck`.
 
-```javascript
-// Clear the third button from the left in the first row.
-streamDeck.clearKey(2);
-```
+#### streamDeck.sendFeatureReport(buffer)
 
-#### <a name="clear-all-keys"></a> `> streamDeck.clearAllKeys() -> undefined`
+- `buffer` &lt;[Buffer](https://nodejs.org/api/buffer.html) | Uint8Array&gt; The buffer send to the Stream Deck.
+- Returns: &lt;StreamDeck&gt;
 
-Synchronously clears all keys on the device.
+Sends a HID feature report to the Stream Deck.
 
-##### Example
+#### streamDeck.setBrightness(percentage)
 
-```javascript
-// Clear all keys.
-streamDeck.clearAllKeys();
-```
-
-#### <a name="set-brightness"></a> `> streamDeck.setBrightness(percentage) -> undefined`
+- `percentage` &lt;number&gt; Percentage of brightness.
+- Returns: &lt;StreamDeck&gt;
 
 Synchronously set the brightness of the Stream Deck. This affects all keys at once. The brightness of individual keys cannot be controlled.
 
-##### Example
+##### Example: set the Stream Deck to maximum brightness
 
 ```javascript
 // Set the Stream Deck to maximum brightness
 streamDeck.setBrightness(100);
 ```
 
-### Events
+#### streamDeck.write(buffer)
 
-#### <a name="down"></a> `> down`
+- `buffer` &lt;[Buffer](https://nodejs.org/api/buffer.html) | Uint8Array&gt; Data to write.
+- Returns: &lt;StreamDeck&gt;
 
-Fired whenever a key is pressed. `keyIndex` is the 0-14 numerical index of that key.
+Synchronously writes an arbitrary [`Buffer`](https://nodejs.org/api/buffer.html) instance to the Stream Deck.
+Throws if an error is encountered during the write operation.
 
-##### Example
-
-```javascript
-streamDeck.on('down', keyIndex => {
-	console.log('key %d down', keyIndex);
-});
-```
-
-#### <a name="up"></a> `> up`
-
-Fired whenever a key is released. `keyIndex` is the 0-14 numerical index of that key.
-
-##### Example
+##### Example: write a number of zeros to the stream deck
 
 ```javascript
-streamDeck.on('up', keyIndex => {
-	console.log('key %d up', keyIndex);
-});
-```
-
-#### <a name="error"></a> `> error`
-
-Fired whenever an error is detected by the `node-hid` library.
-**Always** add a listener for this event! If you don't, errors will be silently dropped.
-
-##### Example
-
-```javascript
-streamDeck.on('error', error => {
-	console.error(error);
-});
+// Writes 16 bytes of zero to the Stream Deck.
+streamDeck.write(Buffer.alloc(16));
 ```

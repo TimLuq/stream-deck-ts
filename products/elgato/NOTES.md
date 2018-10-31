@@ -4,7 +4,7 @@
 
 The Stream Deck uses Hex HID values to map to its buttons. Their Hex values range from `01` - `0F`.
 
-![](media/hid_buttons.png)
+![](../../media/elgato/elgato-stream-deck.svg "Elgato Stream Deck layout")
 
 ## Startup
 
