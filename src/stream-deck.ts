@@ -67,13 +67,17 @@ export abstract class StreamDeck extends EventEmitter {
     }
 
     /**
-     * Checks a keyIndex is a valid key for a stream deck. A number between 0 and 14.
+     * Checks a keyIndex is a valid key for a stream deck. An integer between 0 and `buttonLength - 1`.
      *
      * @param {number} keyIndex The keyIndex to check
      */
     public checkValidKeyIndex(keyIndex: number): number {
+        // tslint:disable-next-line:no-bitwise
+        if (typeof keyIndex !== "number" || (keyIndex | 0) !== keyIndex) {
+            throw new TypeError("Expected keyIndex to be an integer");
+        }
         if (keyIndex < 0 || keyIndex >= this.buttonLength) {
-            throw new TypeError("Expected a valid keyIndex 0 - " + this.buttonLength);
+            throw new TypeError("Expected a valid keyIndex 0 - " + (this.buttonLength - 1));
         }
         return keyIndex;
     }
@@ -91,13 +95,16 @@ export abstract class StreamDeck extends EventEmitter {
     }
 
     /**
-     * Writes a Buffer to the Stream Deck.
+     * Get the `keyIndex` at a specific column and row.
      *
      * @param {number} x column number
      * @param {number} y row number
-     * @returns {number}
+     * @returns {number} keyIndex
      */
-    public buttonIndexFromPosition(x: number, y: number): number {
+    public buttonIndexFromPosition(x: number, y: number): number | undefined {
+        if (this.buttonLayout[y] === undefined) {
+            return undefined;
+        }
         return this.buttonLayout[y][x];
     }
 
@@ -239,14 +246,13 @@ export abstract class StreamDeck extends EventEmitter {
             return this.fillImage(button.index, imageBuffer);
         });
 
-        return Promise.all(buttonFillPromises);
+        return Promise.all(buttonFillPromises).then(() => this);
     }
 
     /**
      * Clears the given key.
      *
      * @param {number} keyIndex The key to clear 0 - 14
-     * @returns {undefined}
      */
     public clearKey(keyIndex: number) {
         this.checkValidKeyIndex(keyIndex);
@@ -274,7 +280,7 @@ export abstract class StreamDeck extends EventEmitter {
 
         const brightnessCommandBuffer = Buffer.alloc(17);
         brightnessCommandBuffer.set([0x05, 0x55, 0xaa, 0xd1, 0x01, percentage]);
-        this.sendFeatureReport(brightnessCommandBuffer);
+        return this.sendFeatureReport(brightnessCommandBuffer);
     }
 
     protected onDeviceData(data: Buffer) {
