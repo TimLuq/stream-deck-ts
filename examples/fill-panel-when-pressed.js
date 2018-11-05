@@ -1,48 +1,50 @@
-'use strict';
+"use strict";
 
-const path = require('path');
-const StreamDeck = require('../index');
-const streamDeck = new StreamDeck();
+const { resolve } = require("path");
+const { selectDevice } = require("..");
 
-console.log('Press keys 0-7 to show the first image, and keys 8-15 to show the second image.');
+Promise.resolve(selectDevice()).then((streamDeck) => {
 
-let filled = false;
-streamDeck.on('down', keyIndex => {
-	if (filled) {
-		return;
-	}
+	console.log("Press even buttons to show the first image, and odd buttons to show the second image.");
 
-	filled = true;
+	let filled = false;
+	streamDeck.on("down", (keyIndex) => {
+		if (filled) {
+			return;
+		}
 
-	let imagePath;
-	if (keyIndex > 7) {
-		console.log('Filling entire panel with an image of a sunny field.');
-		imagePath = path.resolve(__dirname, 'fixtures/sunny_field.png');
-	} else {
-		console.log('Filling entire panel with a mosaic which will show each key as a different color.');
-		imagePath = path.resolve(__dirname, '../test/fixtures/mosaic.png');
-	}
+		filled = true;
 
-	streamDeck.fillPanel(imagePath)
-		.catch(error => {
+		let imagePath;
+		if (keyIndex % 2) {
+			console.log("Filling entire panel with an image of a sunny field.");
+			imagePath = resolve(__dirname, "fixtures/sunny_field.png");
+		} else {
+			console.log("Filling entire panel with a mosaic which will show each key as a different color.");
+			imagePath = resolve(__dirname, "../test/fixtures/mosaic.png");
+		}
+
+		streamDeck.fillPanel(imagePath)
+			.catch(error => {
+				filled = false;
+				console.error(error);
+			});
+	});
+
+	streamDeck.on("up", () => {
+		if (!filled) {
+			return;
+		}
+
+		// Clear the key when all keys are released.
+		if (!streamDeck.hasPressedKeys) {
+			console.log("Clearing all buttons");
+			streamDeck.clearAllKeys();
 			filled = false;
-			console.error(error);
-		});
-});
+		}
+	});
 
-streamDeck.on('up', () => {
-	if (!filled) {
-		return;
-	}
-
-	// Clear the key when all keys are released.
-	if (streamDeck.keyState.every(pressed => !pressed)) {
-		console.log('Clearing all buttons');
-		streamDeck.clearAllKeys();
-		filled = false;
-	}
-});
-
-streamDeck.on('error', error => {
-	console.error(error);
+	streamDeck.on("error", error => {
+		console.error("HID error:", error);
+	});
 });

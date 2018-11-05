@@ -4,18 +4,17 @@ const sharp = require('sharp');
 const path = require('path');
 const PImage = require('pureimage');
 const streamBuffers = require('stream-buffers');
-const StreamDeck = require('../index');
-const streamDeck = new StreamDeck();
+const streamDeckP = require('..').selectDevice();
 
 const font = PImage.registerFont(path.resolve(__dirname, 'fixtures/SourceSansPro-Regular.ttf'), 'Source Sans Pro');
-font.load(() => {
+font.load(() => Promise.resolve(streamDeckP).then((streamDeck) => {
 	streamDeck.on('down', async keyIndex => {
 		console.log('Filling button #%d', keyIndex);
 
 		const textString = `FOO #${keyIndex}`;
-		const img = PImage.make(StreamDeck.ICON_SIZE, StreamDeck.ICON_SIZE);
+		const img = PImage.make(streamDeck.iconSize, streamDeck.iconSize);
 		const ctx = img.getContext('2d');
-		ctx.clearRect(0, 0, StreamDeck.ICON_SIZE, StreamDeck.ICON_SIZE); // As of v0.1, pureimage fills the canvas with black by default.
+		ctx.clearRect(0, 0, streamDeck.iconSize, streamDeck.iconSize); // As of v0.1, pureimage fills the canvas with black by default.
 		ctx.font = '16pt "Source Sans Pro"';
 		ctx.USE_FONT_GLYPH_CACHING = false;
 		ctx.strokeStyle = 'black';
@@ -58,4 +57,4 @@ font.load(() => {
 	streamDeck.on('error', error => {
 		console.error(error);
 	});
-});
+}));

@@ -1,24 +1,24 @@
-'use strict';
+"use strict";
 
-const StreamDeck = require('../index');
-const streamDeck = new StreamDeck();
+const { selectDevice } = require("..");
 
-streamDeck.on('error', error => {
-	console.error(error);
+Promise.resolve(selectDevice()).then((streamDeck) => {
+
+	streamDeck.on('error', error => {
+		console.error(error);
+	});
+
+	const fps = 4; // target 4 fps
+
+	setInterval(() => {
+		streamDeck.forEachKey((k, d) => {
+			const rgb = Math.round(Math.random() * 0xFFFFFF);
+			let hex = rgb.toString(16);
+			while (hex.length < 6) {
+				hex = "0" + hex;
+			}
+			// console.log("Filling with #", hex);
+			d.fillColor(k, rgb);
+		});
+	}, 1000 / fps);
 });
-
-setInterval(() => {
-	const r = getRandomIntInclusive(0, 255);
-	const g = getRandomIntInclusive(0, 255);
-	const b = getRandomIntInclusive(0, 255);
-	console.log('Filling with rgb(%d, %d, %d)', r, g, b);
-	for (let i = 0; i < 15; i++) {
-		streamDeck.fillColor(i, r, g, b);
-	}
-}, 1000 / 5);
-
-function getRandomIntInclusive(min, max) {
-	min = Math.ceil(min);
-	max = Math.floor(max);
-	return Math.floor(Math.random() * (max - min + 1)) + min;
-}
