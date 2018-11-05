@@ -47,9 +47,9 @@ export default class ElgatoStreamDeck extends StreamDeck {
      * @private
      * @param {number} keyIndex The key to write to 0 - 14
      * @param {Uint8Array} pixels Full image data for extraction to page 1
-     * @returns {undefined}
+     * @returns {ElgatoStreamDeck}
      */
-    protected _writePage1(keyIndex: number, pixels: Uint8Array) {
+    protected _writePage1(keyIndex: number, pixels: Uint8Array): this {
         const header = Buffer.from([
             0x02, 0x01, 0x01, 0x00, 0x00, keyIndex + 1, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -75,9 +75,9 @@ export default class ElgatoStreamDeck extends StreamDeck {
      * @private
      * @param {number} keyIndex The key to write to 0 - 14
      * @param {Uint8Array} pixels Image data for page 2
-     * @returns {undefined}
+     * @returns {ElgatoStreamDeck}
      */
-    protected _writePage2(keyIndex: number, pixels: Uint8Array) {
+    protected _writePage2(keyIndex: number, pixels: Uint8Array): this {
         const header = Buffer.from([
             0x02, 0x01, 0x02, 0x00, 0x01, keyIndex + 1, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

@@ -2,10 +2,19 @@ import { devices } from "node-hid";
 import { DEVICE_MODELS } from "./models";
 import { StreamDeck as StreamDeckImpl } from "./stream-deck";
 
+export { IImageLibrary, IImageLibraryCreator, IImageLibraryExtract, IImageRawOptions } from "./image-library";
+
 export * from "./models";
 
 // tslint:disable-next-line:no-empty-interface interface-name
-export interface StreamDeck extends StreamDeckImpl {}
+export interface StreamDeck extends StreamDeckImpl {
+    on(event: "down" | "up", cb: (keyIndex: number) => any): this;
+    on(event: "error", cb: (err: Error) => any): this;
+    once(event: "down" | "up", cb: (keyIndex: number) => any): this;
+    once(event: "error", cb: (err: Error) => any): this;
+    off(event: "down" | "up", cb: (keyIndex: number) => any): this;
+    off(event: "error", cb: (err: Error) => any): this;
+}
 
 /**
  * Select the first identified `StreamDeck`.
@@ -13,9 +22,9 @@ export interface StreamDeck extends StreamDeckImpl {}
  *
  * @param {number?} vendor optional vendor identity number
  * @param {number?} product optional product identity number
- * @returns {StreamDeck?} the first `StreamDeck` within the vendor and product search space
+ * @returns {Promise<StreamDeck>?} the first supported `StreamDeck` within the vendor and product search space, or null
  */
-export function selectDevice(vendor?: number, product?: number): StreamDeck | null {
+export function selectDevice(vendor?: number, product?: number): Promise<StreamDeck> | null {
     for (const device of devices()) {
         if (vendor === undefined || vendor === device.vendorId) {
             const models = DEVICE_MODELS[device.vendorId];
@@ -23,16 +32,16 @@ export function selectDevice(vendor?: number, product?: number): StreamDeck | nu
                 if (product === undefined || product === device.productId) {
                     const productModule = models[device.productId];
                     if (productModule) {
-                        return new (require(productModule).default)(device.path);
+                        return import(productModule.import).then((m) => new m.default(device.path));
                     } else if (product !== undefined) {
-                        const m = "No implmentations for the product " + product + " of vendor " + vendor;
+                        const m = "No implementations for the product " + product + " of vendor " + vendor;
                         const e = new Error(m);
                         (e as any).code = "STRMDCK_MISSING_PRODUCT";
                         throw e;
                     }
                 }
             } else if (vendor !== undefined) {
-                const m = "No implmentations for any product of vendor " + vendor;
+                const m = "No implementations for any product of vendor " + vendor;
                 const e = new Error(m);
                 (e as any).code = "STRMDCK_MISSING_VENDOR";
                 throw e;
@@ -48,10 +57,10 @@ export function selectDevice(vendor?: number, product?: number): StreamDeck | nu
  *
  * @param {number?} vendor optional vendor identity number
  * @param {number?} product optional product identity number
- * @returns {Array<StreamDeck>} a list of `StreamDeck`s within the vendor and product search space
+ * @returns {Array<Promise<StreamDeck>>} a list of promises to `StreamDeck`s within the vendor and product search space
  */
-export function selectAllDevices(vendor?: number, product?: number): StreamDeck[] {
-    const res: StreamDeck[] = [];
+export function selectAllDevices(vendor?: number, product?: number): Array<Promise<StreamDeck>> {
+    const res: Array<Promise<StreamDeck>> = [];
     for (const device of devices()) {
         if (vendor === undefined || vendor === device.vendorId) {
             const models = DEVICE_MODELS[device.vendorId];
@@ -59,16 +68,16 @@ export function selectAllDevices(vendor?: number, product?: number): StreamDeck[
                 if (product === undefined || product === device.productId) {
                     const productModule = models[device.productId];
                     if (productModule) {
-                        res.push(new (require(productModule).default)(device.path));
+                        res.push(import(productModule.import).then((m) => new m.default(device.path)));
                     } else if (product !== undefined) {
-                        const m = "No implmentations for the product " + product + " of vendor " + vendor;
+                        const m = "No implementations for the product " + product + " of vendor " + vendor;
                         const e = new Error(m);
                         (e as any).code = "STRMDCK_MISSING_PRODUCT";
                         throw e;
                     }
                 }
             } else if (vendor !== undefined) {
-                const m = "No implmentations for any product of vendor " + vendor;
+                const m = "No implementations for any product of vendor " + vendor;
                 const e = new Error(m);
                 (e as any).code = "STRMDCK_MISSING_VENDOR";
                 throw e;

@@ -2,7 +2,7 @@
 import { StreamDeck } from "../stream-deck";
 
 import { devices } from "node-hid";
-import sharp = require("sharp");
+import { IImageLibrary } from "../image-library";
 
 const NUM_PIXELS_PG0_BYTES = 0x03c3;
 const NUM_TOTAL_PIXEL_BYTES = 80 * 80 * 3;
@@ -93,12 +93,10 @@ export default class ElgatoStreamDeckMini extends StreamDeck {
         return this;
     }
 
-    protected async processImage(image: sharp.SharpInstance) {
-        const img72 = await image
-            .flatten() // Eliminate alpha channel, if any.
-            .resize(72, 72)
-            .raw()
-            .toBuffer();
+    protected async processImage(image: IImageLibrary): Promise<Uint8Array> {
+        const img0 = await image.flatten(); // Eliminate alpha channel, if any.
+        const img1 = await img0.resize(72, 72);
+        const img72 = await img1.toUint8Array();
 
         // center in a 4px black border
         const hoff = 4 * 3;

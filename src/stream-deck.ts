@@ -1,9 +1,9 @@
-import { EventEmitter } from "events";
+import { emit, EventEmitter } from "./event-emitter";
 
 import { HID } from "node-hid";
-import sharp = require("sharp");
 
 import { checkRGBValue } from "./helpers";
+import { IImageLibrary, IImageLibraryCreator, IImageRawOptions } from "./image-library";
 
 export abstract class StreamDeck extends EventEmitter {
 
@@ -35,6 +35,11 @@ export abstract class StreamDeck extends EventEmitter {
      */
     public abstract readonly buttonRows: number;
 
+    /**
+     * The layout of the stream deck showing which position has a specific `keyIndex`.
+     *
+     * @readonly
+     */
     public abstract readonly buttonLayout: number[][];
 
     /**
@@ -44,10 +49,66 @@ export abstract class StreamDeck extends EventEmitter {
      */
     protected abstract readonly pagePacketSize: number;
 
+    /**
+     * The connected device.
+     */
     protected device: HID;
 
-    protected keyState: number; // limited to 32 buttons
+    /**
+     * The current state of key presses.
+     *
+     * Limited to 32 buttons.
+     */
+    protected keyState: number;
 
+    // tslint:disable-next-line:variable-name
+    protected _imageLibrary?: string | IImageLibraryCreator | PromiseLike<IImageLibraryCreator>;
+
+    /**
+     * The image library to use.
+     * If not already imported getting this property will trigger the import.
+     *
+     * @readonly
+     */
+    public get imageLibrary() {
+        if (!this._imageLibrary) {
+            this._imageLibrary = import("./image-library").then((x) => x.default);
+        } else if (typeof this._imageLibrary === "string") {
+            this._imageLibrary = import(this._imageLibrary).then((x) => x.default || x);
+        }
+        return this._imageLibrary;
+    }
+
+    /**
+     * A sorted list containing the `keyIndex` of all buttons currently pressed.
+     *
+     * @readonly
+     */
+    public get pressedKeys(): number[] {
+        const r: number[] = [];
+        for (let i = 0; i < this.buttonLength; i++) {
+            // tslint:disable-next-line:no-bitwise
+            if (this.keyState & (1 << i)) {
+                r.push(i);
+            }
+        }
+        return r;
+    }
+
+    /**
+     * A boolean showing if there currently are any pressed keys.
+     *
+     * @readonly
+     */
+    public get hasPressedKeys(): boolean {
+        return this.keyState !== 0;
+    }
+
+    /**
+     * Connects to a HID device.
+     *
+     * @param {string} devicePath path to the HID device.
+     */
     public constructor(devicePath: string) {
         super();
 
@@ -62,8 +123,30 @@ export abstract class StreamDeck extends EventEmitter {
         this.device.on("data", (data) => this.onDeviceData(data));
 
         this.device.on("error", (err) => {
-            this.emit("error", err);
+            if (typeof err !== "object") {
+                err = new Error(err);
+            }
+            if (!this[emit]("error", err)) {
+                Promise.resolve().then(() => {
+                    throw err;
+                });
+            }
         });
+    }
+
+    /**
+     * Sets which image library should be used.
+     *
+     * If the parameter is a `string` the module or file will be imported when needed
+     * and expects `default` to be an `IImageLibraryCreator`.
+     * If no `default` is exported the functions defined in an `IImageLibraryCreator` must have been exported directly.
+     *
+     * @param {string | Promise<Object> | Object} library A name, path, or reference to an image library.
+     * @return {StreamDeck} this
+     */
+    public setImageLibrary(library: string | IImageLibraryCreator | PromiseLike<IImageLibraryCreator>): this {
+        this._imageLibrary = library;
+        return this;
     }
 
     /**
@@ -86,6 +169,7 @@ export abstract class StreamDeck extends EventEmitter {
      * Loops through every available keyIndex.
      *
      * @param {Function} func The function to pass the keyIndex and the streamDeck instance to
+     * @returns {StreamDeck} this
      */
     public forEachKey(func: (keyIndex: number, streamDeck: this) => any): this {
         for (let i = 0; i < this.buttonLength; i++) {
@@ -112,7 +196,7 @@ export abstract class StreamDeck extends EventEmitter {
      * Writes a Buffer to the Stream Deck.
      *
      * @param {Uint8Array} buffer The buffer written to the Stream Deck
-     * @returns {StreamDeck}
+     * @returns {StreamDeck} this
      */
     public write(buffer: Uint8Array): this {
         this.device.write(Array.from(buffer));
@@ -123,9 +207,9 @@ export abstract class StreamDeck extends EventEmitter {
      * Sends a HID feature report to the Stream Deck.
      *
      * @param {Uint8Array} buffer The buffer send to the Stream Deck.
-     * @returns undefined
+     * @returns {StreamDeck} this
      */
-    public sendFeatureReport(buffer: Uint8Array) {
+    public sendFeatureReport(buffer: Uint8Array): this {
         this.device.sendFeatureReport(buffer as ArrayLike<number> as number[]);
         return this;
     }
@@ -137,6 +221,7 @@ export abstract class StreamDeck extends EventEmitter {
      * @param {number} r The color's red value. 0 - 255
      * @param {number?} g The color's green value. 0 - 255
      * @param {number?} b The color's blue value. 0 -255
+     * @return {StreamDeck} this
      */
     public fillColor(keyIndex: number, rgb: number): this;
     public fillColor(keyIndex: number, r: number, g: number, b: number): this;
@@ -200,12 +285,14 @@ export abstract class StreamDeck extends EventEmitter {
      * Fills the given key with an image from a file.
      *
      * @param {number} keyIndex The key to fill 0 - 14
-     * @param {String} filePath A file path to an image file
+     * @param {string} filePath A file path to an image file
      * @returns {Promise<StreamDeck>} Resolves when the file has been written
      */
     public async fillImageFromFile(keyIndex: number, filePath: string): Promise<this> {
         this.checkValidKeyIndex(keyIndex);
-        const buffer = await this.processImage(sharp(filePath));
+        const imglib = await this.imageLibrary;
+        const imgins = await imglib.loadFile(filePath);
+        const buffer = await this.processImage(imgins);
         return this.fillImage(keyIndex, buffer);
     }
 
@@ -213,17 +300,27 @@ export abstract class StreamDeck extends EventEmitter {
      * Fills the whole panel with an image in a Buffer.
      * The image is scaled to fit, and then center-cropped (if necessary).
      *
-     * @param {Buffer|String} imagePathOrBuffer
-     * @param {Object} [sharpOptions] - Options to pass to sharp, necessary if supplying a buffer of raw pixels.
-     * See http://sharp.dimens.io/en/latest/api-constructor/#sharpinput-options for more details.
+     * @param {Uint8Array|string} imagePathOrBuffer
+     * @param {Object} [rawOptions] If supplying a buffer of raw pixels the size of the image must be specified.
+     * @param {Object} [rawOptions.channels] Number of channels per pixel.
+     * @param {Object} [rawOptions.height] Height of the raw pixel image.
+     * @param {Object} [rawOptions.width] Width of the raw pixel image.
      */
-    public fillPanel(imagePathOrBuffer: Buffer | string, sharpOptions: sharp.SharpOptions) {
+    public async fillPanel(imagePathOrBuffer: Uint8Array | string): Promise<this>;
+    public async fillPanel(imagePathOrBuffer: Uint8Array, rawOptions: IImageRawOptions): Promise<this>;
+    public async fillPanel(imagePathOrBuffer: Uint8Array | string, rawOptions?: IImageRawOptions): Promise<this> {
         const iconHeight = this.iconSize;
         const iconWidth = this.iconSize;
         const cols = this.buttonColumns;
-        const image = sharp(imagePathOrBuffer, sharpOptions)
-            .resize(cols * iconWidth, this.buttonRows * iconHeight)
-            .flatten(); // Eliminate alpha channel, if any.
+        const imglib = await this.imageLibrary;
+        const image0 = await (rawOptions
+            ? imglib.createRaw(imagePathOrBuffer as Uint8Array, rawOptions)
+            : typeof imagePathOrBuffer === "string"
+            ? imglib.loadFile(imagePathOrBuffer)
+            : imglib.loadFileData(imagePathOrBuffer)
+        );
+        const image1 = await image0.resize(cols * iconWidth, this.buttonRows * iconHeight);
+        const image = await image1.flatten(); // Eliminate alpha channel, if any.
 
         const buttons = [];
         for (let row = 0; row < this.buttonRows; row++) {
@@ -236,17 +333,17 @@ export abstract class StreamDeck extends EventEmitter {
             }
         }
 
-        const buttonFillPromises = buttons.map(async (button) => {
-            const imageBuffer = await image.extract({
+        for (const button of buttons) {
+            const part = await image.extract({
                 height: iconHeight,
                 left: button.x * iconWidth,
                 top: button.y * iconHeight,
                 width: iconWidth,
-            }).raw().toBuffer();
-            return this.fillImage(button.index, imageBuffer);
-        });
+            });
+            this.fillImage(button.index, await part.toUint8Array());
+        }
 
-        return Promise.all(buttonFillPromises).then(() => this);
+        return this;
     }
 
     /**
@@ -283,7 +380,7 @@ export abstract class StreamDeck extends EventEmitter {
         return this.sendFeatureReport(brightnessCommandBuffer);
     }
 
-    protected onDeviceData(data: Buffer) {
+    protected onDeviceData(data: Uint8Array) {
         // The first byte is a report ID, the last byte appears to be padding.
         // We strip these out for now.
         data = data.slice(1, data.length - 1);
@@ -298,20 +395,23 @@ export abstract class StreamDeck extends EventEmitter {
                 // tslint:disable-next-line:no-bitwise
                 this.keyState ^= bitidx;
                 if (keyPressed) {
-                    this.emit("down", i);
+                    this[emit]("down", i);
                 } else {
-                    this.emit("up", i);
+                    this[emit]("up", i);
                 }
             }
         }
     }
 
-    protected processImage(image: sharp.SharpInstance) {
-        return image
-            .flatten() // Eliminate alpha channel, if any.
-            .resize(this.iconSize, this.iconSize)
-            .raw()
-            .toBuffer();
+    /**
+     * Process an image to be shown on the stream deck.
+     *
+     * @param {Object} image image to extract pixels from.
+     */
+    protected async processImage(image: IImageLibrary): Promise<Uint8Array> {
+        const i0 = await image.flatten(); // Eliminate alpha channel, if any.
+        const i1 = await i0.resize(this.iconSize, this.iconSize);
+        return i1.toUint8Array();
     }
 
     protected abstract writeImagePage(keyIndex: number, pixels: Uint8Array): this;
