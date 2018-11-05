@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "An npm module for interfacing with a stream deck",
   "main": "index.js",
+  "module": "build/exports.js",
   "typings": "build/exports.d.ts",
   "dependencies": {
-    "node-hid": "^0.7.3",
+    "node-hid": "^0.7.3"
+  },
+  "peerDependencies": {
     "sharp": "^0.21.0"
   },
   "devDependencies": {
@@ -17,12 +20,14 @@
     "mockery": "^2.1.0",
     "nyc": "^11.9.0",
     "pureimage": "0.1.3",
+    "sharp": "^0.21.0",
     "sinon": "^4.5.0",
     "standard-version": "^4.4.0",
     "stream-buffers": "^3.0.2"
   },
   "scripts": {
-    "prerelease": "npm t",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir ./lib",
+    "prerelease": "npm run build && npm t",
     "release": "standard-version",
     "postrelease": "npm publish && git push --follow-tags",
     "test": "nyc ava",
@@ -80,7 +85,8 @@
   },
   "files": [
     "*.js",
-    "build"
+    "build",
+    "lib"
   ],
   "engines": {
     "node": ">=7.6"

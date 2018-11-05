@@ -10,8 +10,24 @@
             "name": "fill-button-when-pressed",
             "program": "${workspaceFolder}/examples/fill-button-when-pressed.js",
             "outFiles": [
-                "${workspaceFolder}/**/*.js"
-            ]
+                "${workspaceFolder}/lib/**/*.js"
+            ],
+            "sourceMaps": true,
+            "showAsyncStacks": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "test",
+            "program": "${workspaceRoot}/node_modules/ava/profile.js",
+            "args": [
+                "${workspaceRoot}/test/test.spec.js"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/lib/**/*.js"
+            ],
+            "sourceMaps": true,
+            "showAsyncStacks": true
         }
     ]
 }
