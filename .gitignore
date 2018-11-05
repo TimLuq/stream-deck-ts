@@ -69,3 +69,4 @@ typings/
 /.idea/codeSyles/codeStyleConfig.xml
 
 /build
+/lib

@@ -52,7 +52,7 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
 	curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
 	sudo apt-get install -y nodejs 
 	```
-  * Try installing `node-elgato-stream-deck`
+  * Try installing `stream-deck-ts`
   * If you still have issues, ensure everything is updated and try again:
 	```bash
 	sudo apt-get update && sudo apt-get upgrade
@@ -73,9 +73,10 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
     * [Event: 'up'](#event-up)
     * [Event: 'error'](#event-error)
 	* [streamDeck.buttonColumns](#streamdeck-buttoncolumns)
-	* [streamDeck.buttonLength](#streamdeck-buttonLength)
-	* [streamDeck.buttonRows](#streamdeck-buttonRows)
-	* [streamDeck.iconSize](#streamdeck-iconSize)
+	* [streamDeck.buttonLength](#streamdeck-buttonlength)
+	* [streamDeck.buttonRows](#streamdeck-buttonrows)
+	* [streamDeck.iconSize](#streamdeck-iconsize)
+	* [streamDeck.pressedKeys](#streamdeck-pressedkeys)
 	* [streamDeck.buttonIndexFromPosition(x, y)](#streamdeck-buttonindexfromposition-x-y)
 	* [streamDeck.checkValidKeyIndex(keyIndex)](#streamDeck-checkvalidkeyindex-keyindex)
 	* [streamDeck.clearAllKeys()](#streamdeck-clearallkeys)
@@ -84,7 +85,7 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
 	* [streamDeck.fillColor(keyIndex, r, g, b)](#streamdeck-fillcolor-keyindex-r-g-b)
 	* [streamDeck.fillImage(keyIndex, buffer)](#streamdeck-fillimage-keyindex-buffer)
 	* [streamDeck.fillImageFromFile(keyIndex, filePath)](#streamdeck-fillimagefromfile-keyindex-filepath)
-	* [streamDeck.fillPanel(imagePathOrBuffer[, sharpOptions])](#streamdeck-fillpanel-imagepathorbuffer-sharpoptions)
+	* [streamDeck.fillPanel(imagePathOrBuffer[, rawOptions])](#streamdeck-fillpanel-imagepathorbuffer-rawoptions)
 	* [streamDeck.forEachKey(callback)](#streamdeck-foreachkey-callback)
     * [streamDeck.sendFeatureReport(buffer)](#streamdeck-sendfeaturereport-buffer)
     * [streamDeck.setBrightness(percentage)](#streamdeck-setbrightness-percentage)
@@ -96,38 +97,40 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
 import { resolve } from "path";
 import { selectDevice } from "stream-deck-ts";
 
-// Automatically discovers connected Stream Decks, and attaches to the first one.
-// Returns `null` if there are no connected stream decks.
-// You also have the option of providing the numeric vendor identifier and product identifier.
-// For example: `const myStreamDeck = selectDevice(VENDOR_ELGATO, PRODUCT_ELGATO_STREAMDECK_MINI);`
-const myStreamDeck = selectDevice();
-if (!myStreamDeck) {
-	throw new Error("No StreamDeck found.");
-}
+(async function asyncMain() {
+	// Automatically discovers connected Stream Decks, and attaches to the first one.
+	// Returns `null` if there are no connected stream decks.
+	// You also have the option of providing the numeric vendor identifier and product identifier.
+	// For example: `const myStreamDeck = await selectDevice(VENDOR_ELGATO, PRODUCT_ELGATO_STREAMDECK_MINI);`
+	const myStreamDeck = await selectDevice();
+	if (!myStreamDeck) {
+		throw new Error("No StreamDeck found.");
+	}
 
-myStreamDeck.on('down', (keyIndex) => {
-	console.log('key %d down', keyIndex);
-});
+	myStreamDeck.on('down', (keyIndex) => {
+		console.log('key %d down', keyIndex);
+	});
 
-myStreamDeck.on('up', (keyIndex) => {
-	console.log('key %d up', keyIndex);
-});
+	myStreamDeck.on('up', (keyIndex) => {
+		console.log('key %d up', keyIndex);
+	});
 
-// Fired whenever an error is detected by the `node-hid` library.
-// Always add a listener for this event! If you don't, errors will be silently dropped.
-myStreamDeck.on('error', error => {
-	console.error(error);
-});
+	// Fired whenever an error is detected by the `node-hid` library.
+	// Always add a listener for this event!
+	myStreamDeck.on('error', (error) => {
+		console.error(error);
+	});
 
-// Fill the second button from the left in the first row with an image of the GitHub logo.
-// This is asynchronous and returns a promise.
-myStreamDeck.fillImageFromFile(3, resolve(__dirname, 'github_logo.png')).then(() => {
-	console.log('Successfully wrote a GitHub logo to key 3.');
-});
+	// Fill button 3 with an image of the GitHub logo.
+	// This is asynchronous and returns a promise.
+	myStreamDeck.fillImageFromFile(3, resolve(__dirname, 'github_logo.png')).then(() => {
+		console.log('Successfully wrote a GitHub logo to key 3.');
+	});
 
-// Fill the first button form the left in the first row with a solid red color. This is synchronous.
-myStreamDeck.fillColor(4, 255, 0, 0);
-console.log('Successfully wrote a red square to key 4.');
+	// Fill the first button form the left in the first row with a solid red color. This is synchronous.
+	myStreamDeck.fillColor(4, 255, 0, 0);
+	console.log('Successfully wrote a red square to key 4.');
+}());
 ```
 
 ## Features
@@ -157,7 +160,7 @@ Please refer to the [Changelog](CHANGELOG.md) for project history details, too.
 
 ## API
 
-### selectDevice([vendor[, product]])
+### selectDevice ([vendor[, product]])
 
 - `vendor` &lt;number&gt; An optional vendor identity number to limit which device will be selected.
 - `product` &lt;number&gt; An optional product identity number to limit which device will be selected.
@@ -165,7 +168,7 @@ Please refer to the [Changelog](CHANGELOG.md) for project history details, too.
 
 Select the first supported device. If no supported device is found `null` is returned.
 
-### selectAllDevices([vendor[, product]])
+### selectAllDevices ([vendor[, product]])
 
 - `vendor` &lt;number&gt; An optional vendor identity number to limit which devices will be selected.
 - `product` &lt;number&gt; An optional product identity number to limit which devices will be selected.
@@ -196,31 +199,43 @@ The `up` event is triggered when a button on the Stream Deck has been released w
 Fired whenever an error is detected by the `node-hid` library.
 **Always** add a listener for this event! If you don't, errors will be silently dropped.
 
-#### streamDeck.buttonColumns
+#### streamDeck .buttonColumns
 
 - &lt;number&gt;
 
 Returns the number of button columns available to this `StreamDeck`.
 
-#### streamDeck.buttonLength
+#### streamDeck. buttonLength
 
 - &lt;number&gt;
 
 Returns the number of buttons available to this `StreamDeck`.
 
-#### streamDeck.buttonRows
+#### streamDeck .buttonRows
 
 - &lt;number&gt;
 
 Returns the number of button rows available to this `StreamDeck`.
 
-#### streamDeck.iconSize
+#### streamDeck .hasPressedKeys
+
+- &lt;boolean&gt;
+
+A boolean showing if there currently are any pressed keys.
+
+#### streamDeck .iconSize
 
 - &lt;number&gt;
 
 Returns the size in pixels used for icons.
 
-#### streamDeck.buttonIndexFromPosition(x, y)
+#### streamDeck .pressedKeys
+
+- &lt;Array&lt;number&gt;&gt;
+
+A sorted list of all buttons currently pressed.
+
+#### streamDeck .buttonIndexFromPosition (x, y)
 
 - `x` &lt;number&gt; Cloumn number counted from from the left.
 - `y` &lt;number&gt; Row number counted from from the top.
@@ -228,7 +243,7 @@ Returns the size in pixels used for icons.
 
 Get the `keyIndex` at a specific column and row.
 
-#### streamDeck.checkValidKeyIndex(keyIndex)
+#### streamDeck .checkValidKeyIndex (keyIndex)
 
 - `keyIndex` &lt;number&gt; Cloumn number counted from from the left.
 - `y` &lt;number&gt; Row number counted from from the top.
@@ -236,7 +251,7 @@ Get the `keyIndex` at a specific column and row.
 
 Validate a `keyIndex`. If the number is not valid the function will throw a `TypeError`, otherwise the same value will be returned.
 
-#### streamDeck.clearAllKeys()
+#### streamDeck .clearAllKeys ()
 
 - Returns: &lt;StreamDeck&gt;
 
@@ -249,7 +264,7 @@ Synchronously clears all keys on the device.
 streamDeck.clearAllKeys();
 ```
 
-#### streamDeck.clearKey(keyIndex)
+#### streamDeck .clearKey (keyIndex)
 
 - `keyIndex` &lt;number&gt; Key to affect.
 - Returns: &lt;StreamDeck&gt;
@@ -263,7 +278,7 @@ Synchronously clears the given `keyIndex`'s screen.
 streamDeck.clearKey(2);
 ```
 
-#### streamDeck.fillColor(keyIndex, rgb)
+#### streamDeck .fillColor (keyIndex, rgb)
 
 - `keyIndex` &lt;number&gt; Key to affect.
 - `rgb` &lt;number&gt; Fill color.
@@ -277,7 +292,7 @@ Synchronously sets the given `keyIndex`'s screen to a solid RGB color.
 streamDeck.fillColor(4, 0xFF0000);
 ```
 
-#### streamDeck.fillColor(keyIndex, r, g, b)
+#### streamDeck .fillColor (keyIndex, r, g, b)
 
 - `keyIndex` &lt;number&gt; Key to affect.
 - `r` &lt;number&gt; Red component between `0` - `255`.
@@ -293,7 +308,7 @@ Synchronously sets the given `keyIndex`'s screen to a solid RGB color.
 streamDeck.fillColor(5, 0, 0, 0xFF);
 ```
 
-#### streamDeck.fillImage(keyIndex, buffer)
+#### streamDeck .fillImage (keyIndex, buffer)
 
 - `keyIndex` &lt;number&gt; Key to affect.
 - `buffer` &lt;[Buffer](https://nodejs.org/api/buffer.html)&gt; Image bytes.
@@ -319,7 +334,7 @@ const buffer = await sharp(filepath)
 streamDeck.fillImage(2, buffer);
 ```
 
-#### streamDeck.fillImageFromFile(keyIndex, filePath)
+#### streamDeck .fillImageFromFile (keyIndex, filePath)
 
 - `keyIndex` &lt;number&gt; Key to affect.
 - `filePath` &lt;string&gt; File system path to an image file.
@@ -337,10 +352,13 @@ await streamDeck.fillImageFromFile(3, path.resolve(__dirname, 'github_logo.png')
 console.log('Successfully wrote a GitHub logo to key 3.');
 ```
 
-#### streamDeck.fillPanel(imagePathOrBuffer[, sharpOptions])
+#### streamDeck .fillPanel (imagePathOrBuffer[, rawOptions])
 
-- `imagePathOrBuffer` &lt;string | [Buffer](https://nodejs.org/api/buffer.html)&gt; Image data or path to a file.
-- `sharpOptions` &lt;object&gt; Optional options object to be passed to the `sharp` image library.
+- `imagePathOrBuffer` &lt;string | Uint8Array | [Buffer](https://nodejs.org/api/buffer.html)&gt; Image data or path to a file.
+- `rawOptions` &lt;object&gt; Optional options object used if the image buffer contained raw pixel data.
+  - `rawOptions.channels` &lt;number&gt; Number of channels per pixel. `RGBA = 4`.
+  - `rawOptions.height` &lt;number&gt; Height in pixels.
+  - `rawOptions.width` &lt;number&gt; Width in pixels.
 - Returns: &lt;Promise&lt;StreamDeck&gt;&gt;
 
 Asynchronously applies an image to the entire panel, spreading it over all keys. The image is scaled down and center-cropped to fit. This method does not currently account for the gaps between keys, and behaves as if each key was directly connected to its neighbors. If you wish to account for the gaps between keys, you'll need to do so via other means, and bake that into the image you provide to `fillPanel`.
@@ -358,21 +376,21 @@ await streamDeck.fillPanel(filepath);
 console.log('Successfully filled the panel with an image.');
 ```
 
-#### streamDeck.forEachKey(callback)
+#### streamDeck .forEachKey (callback)
 
 - `callback` &lt;Function&gt; The function to call for each button in the stream deck.
 - Returns: &lt;StreamDeck&gt;
 
 Execute a function for each button available to the `StreamDeck`.
 
-#### streamDeck.sendFeatureReport(buffer)
+#### streamDeck .sendFeatureReport (buffer)
 
 - `buffer` &lt;[Buffer](https://nodejs.org/api/buffer.html) | Uint8Array&gt; The buffer send to the Stream Deck.
 - Returns: &lt;StreamDeck&gt;
 
 Sends a HID feature report to the Stream Deck.
 
-#### streamDeck.setBrightness(percentage)
+#### streamDeck .setBrightness (percentage)
 
 - `percentage` &lt;number&gt; Percentage of brightness.
 - Returns: &lt;StreamDeck&gt;
@@ -386,7 +404,7 @@ Synchronously set the brightness of the Stream Deck. This affects all keys at on
 streamDeck.setBrightness(100);
 ```
 
-#### streamDeck.write(buffer)
+#### streamDeck .write (buffer)
 
 - `buffer` &lt;[Buffer](https://nodejs.org/api/buffer.html) | Uint8Array&gt; Data to write.
 - Returns: &lt;StreamDeck&gt;
