@@ -4,7 +4,7 @@ const { selectDevice } = require("..");
 
 Promise.resolve(selectDevice()).then((streamDeck) => {
 
-	streamDeck.on('error', error => {
+	streamDeck.on("error", error => {
 		console.error(error);
 	});
 

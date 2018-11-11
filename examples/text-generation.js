@@ -1,60 +1,69 @@
-'use strict';
+"use strict";
 
-const sharp = require('sharp');
-const path = require('path');
-const PImage = require('pureimage');
-const streamBuffers = require('stream-buffers');
-const streamDeckP = require('..').selectDevice();
+const sharp = require("sharp");
+const { resolve } = require("path");
+const streamDeckP = require("..").selectDevice();
 
-const font = PImage.registerFont(path.resolve(__dirname, 'fixtures/SourceSansPro-Regular.ttf'), 'Source Sans Pro');
-font.load(() => Promise.resolve(streamDeckP).then((streamDeck) => {
-	streamDeck.on('down', async keyIndex => {
-		console.log('Filling button #%d', keyIndex);
+const { writeFileSync } = require("fs");
+
+const xmlescapes = {
+	">": "gt",
+	"<": "lt",
+	"&": "amp"
+};
+const xmlescapex = new RegExp("[" + Object.keys(xmlescapes).join("") + "]", "g");
+function xmlescape(s) {
+	return s.replace(xmlescapex, (k) => "&" + xmlescapes[k] + ";");
+}
+
+function randColor() {
+	const r = Math.round(Math.random() * 15);
+	const g = Math.round(Math.random() * 15);
+	const b = Math.round(Math.random() * 15);
+	return r.toString(16) + g.toString(16) + b.toString(16);
+}
+
+Promise.resolve(streamDeckP).then((streamDeck) => {
+	if (!streamDeck) {
+		throw new Error("No stream deck found.");
+	}
+
+	streamDeck.on("down", async (keyIndex) => {
+		console.log("Filling button #%d", keyIndex);
 
 		const textString = `FOO #${keyIndex}`;
-		const img = PImage.make(streamDeck.iconSize, streamDeck.iconSize);
-		const ctx = img.getContext('2d');
-		ctx.clearRect(0, 0, streamDeck.iconSize, streamDeck.iconSize); // As of v0.1, pureimage fills the canvas with black by default.
-		ctx.font = '16pt "Source Sans Pro"';
-		ctx.USE_FONT_GLYPH_CACHING = false;
-		ctx.strokeStyle = 'black';
-		ctx.lineWidth = 3;
-		ctx.strokeText(textString, 8, 60);
-		ctx.fillStyle = '#ffffff';
-		ctx.fillText(textString, 8, 60);
+		const textColor  = randColor();
+		const fontSize = 12;
 
-		const writableStreamBuffer = new streamBuffers.WritableStreamBuffer({
-			initialSize: 20736, // Start at what should be the exact size we need
-			incrementAmount: 1024 // Grow by 1 kilobyte each time buffer overflows.
-		});
+		const img = `<svg xmlns="http://www.w3.org/2000/svg">
+	<text x="0" y="${fontSize * 0.8}" font-size="${fontSize}" fill="#${textColor}">
+		${xmlescape(textString)}
+	</text>
+</svg>`;
 
-		try {
-			await PImage.encodePNGToStream(img, writableStreamBuffer);
+		const imagedata = Buffer.from(img);
+		const size = Math.floor((streamDeck.iconSize - 4) * 0.9);
+		const i = await sharp(imagedata, { density: 300 })
+			.resize(size, size, { fit: "contain", background: {r:0,g:0,b:0,alpha:0} })
+			.png().toBuffer();
+	
+		const compositImage = await sharp(resolve(__dirname, "fixtures", "github_logo.png"))
+			.resize(streamDeck.iconSize, streamDeck.iconSize)
+			.overlayWith(i)
+			.flatten()
+			.removeAlpha()
+			.raw().toBuffer();
 
-			// For some reason, adding an overlayWith command forces the final image to have
-			// an alpha channel, even if we call .flatten().
-			// To work around this, we have to overlay the image, render it as a PNG,
-			// then put that PNG back into Sharp, flatten it, and render raw.
-			// Seems like a bug in Sharp that we should make a test case for and report.
-			const pngBuffer = await sharp(path.resolve(__dirname, 'fixtures/github_logo.png'))
-				.resize(StreamDeck.ICON_SIZE, StreamDeck.ICON_SIZE)
-				.overlayWith(writableStreamBuffer.getContents())
-				.png()
-				.toBuffer();
-			const finalBuffer = await sharp(pngBuffer).flatten().raw().toBuffer();
-			await streamDeck.fillImage(keyIndex, finalBuffer);
-		} catch (error) {
-			console.error(error);
-		}
+		return streamDeck.fillImage(keyIndex, compositImage);
 	});
 
-	streamDeck.on('up', keyIndex => {
+	streamDeck.on("up", keyIndex => {
 		// Clear the key when it is released.
-		console.log('Clearing button #%d', keyIndex);
+		console.log("Clearing button #%d", keyIndex);
 		streamDeck.clearKey(keyIndex);
 	});
 
-	streamDeck.on('error', error => {
+	streamDeck.on("error", error => {
 		console.error(error);
 	});
-}));
+});

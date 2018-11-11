@@ -18,6 +18,28 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "brightness",
+            "program": "${workspaceFolder}/examples/brightness.js",
+            "outFiles": [
+                "${workspaceFolder}/lib/**/*.js"
+            ],
+            "sourceMaps": true,
+            "showAsyncStacks": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "text-generation",
+            "program": "${workspaceFolder}/examples/text-generation.js",
+            "outFiles": [
+                "${workspaceFolder}/lib/**/*.js"
+            ],
+            "sourceMaps": true,
+            "showAsyncStacks": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "test",
             "program": "${workspaceRoot}/node_modules/ava/profile.js",
             "args": [
