@@ -5,10 +5,11 @@
   "main": "index.js",
   "module": "build/exports.js",
   "typings": "build/exports.d.ts",
+  "license": "MIT",
   "dependencies": {
     "node-hid": "^0.7.3"
   },
-  "peerDependencies": {
+  "optionalDependencies": {
     "sharp": "^0.21.0"
   },
   "devDependencies": {
@@ -18,12 +19,10 @@
     "ava": "^0.25.0",
     "coveralls": "^3.0.2",
     "mockery": "^2.1.0",
-    "nyc": "^11.9.0",
-    "pureimage": "0.1.3",
+    "nyc": "^13.1.0",
     "sharp": "^0.21.0",
-    "sinon": "^4.5.0",
-    "standard-version": "^4.4.0",
-    "stream-buffers": "^3.0.2"
+    "sinon": "^7.1.1",
+    "standard-version": "^4.4.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir ./lib",
@@ -34,7 +33,8 @@
     "report": "nyc report --reporter=html",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "update-coc": "npx weallbehave -o . && git add CODE_OF_CONDUCT.md && git commit -m 'docs(coc): updated CODE_OF_CONDUCT.md'",
-    "update-contrib": "npx weallcontribute -o . && git add CONTRIBUTING.md && git commit -m 'docs(contributing): updated CONTRIBUTING.md'"
+    "update-contrib": "npx weallcontribute -o . && git add CONTRIBUTING.md && git commit -m 'docs(contributing): updated CONTRIBUTING.md'",
+    "example": "node ./example.js"
   },
   "repository": {
     "type": "git",
@@ -75,7 +75,6 @@
       "url": "http://www.chrishanel.com/"
     }
   ],
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/TimLuq/node-elgato-stream-deck/issues"
   },
