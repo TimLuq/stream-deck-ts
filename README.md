@@ -73,6 +73,7 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
   * [devices()](#devices)
   * [selectDevice([vendor[, product]])](#selectdevice-vendor-product)
   * [selectAllDevices([vendor[, product]])](#selectalldevices-vendor-product)
+  * [setHidAsyncType(asyncMode)](#sethidasynctype-asyncmode)
   * [Class: StreamDeck](#class-streamdeck)
     * [Event: 'down'](#event-down)
     * [Event: 'up'](#event-up)
