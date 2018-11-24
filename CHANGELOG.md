@@ -5,14 +5,14 @@ All notable changes to this project will be documented in this file. See [standa
 <a name="1.0.0"></a>
 # 1.0.0 (2018-11-11)
 
-Almost a complete rewrite.
+Almost a complete rewrite from the original project.
 - Written in TypeScript.
 - Make products modular.
   - Rewrite support for Elgato Stream Deck.
   - Add support for Elgato Stream Deck Mini.
 - Make image module interchangable.
   - Allows for using any image library by wrapping it in an object implementing a specific interface.
-  - Defaults to a wrapper of `sharp`. If no other library is specified and `sharp` isn't installed any image operation will throw.
+  - Defaults to a wrapper of `sharp`. If no other library is specified and `sharp` isn't installed any image operation will throw an exception.
 - Run HID operations in a separate thread or process when available.
   - Async HID operations enables image manipulation to be done in parallel with sending bytes over the wire.
   - Per default runs in a separate process by internally using [`fork`](https://nodejs.org/api/child_process.html#child_process_child_process_fork_modulepath_args_options).
