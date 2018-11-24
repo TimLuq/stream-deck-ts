@@ -5,6 +5,7 @@
   "main": "index.js",
   "module": "build/exports.js",
   "typings": "build/exports.d.ts",
+  "types": "build/exports.d.ts",
   "license": "MIT",
   "dependencies": {
     "node-hid": "^0.7.3"
@@ -85,7 +86,8 @@
   "files": [
     "*.js",
     "build",
-    "lib"
+    "lib",
+    "*.md"
   ],
   "engines": {
     "node": ">=8.0"

@@ -34,3 +34,36 @@ export const DEVICE_MODELS: IStreamDeckDevices & typeof DEVICE_MODELS_KNOWN
             p[k] = { ...(DEVICE_MODELS_KNOWN as any)[k] };
             return p;
         }, {});
+
+/**
+ * Register a `StreamDeck` compatable product.
+ *
+ * @param {number} vendor The numeric vendorId of the product.
+ * @param {number} product The numeric productId of the product.
+ * @param {Object} config The metadata descriptor for the product.
+ * @returns {?Object} undefined, or the previous configuration if one existed.
+ */
+export function registerStreamDeckProduct(vendor: number, product: number,
+                                          config: IStreamDeckMetaData,
+): IStreamDeckMetaData | undefined {
+    if (!DEVICE_MODELS[vendor]) {
+        DEVICE_MODELS[vendor] = {};
+    }
+    const prev = DEVICE_MODELS[vendor][product];
+    DEVICE_MODELS[vendor][product] = config;
+    return prev;
+}
+
+/**
+ * Get a previously registered `StreamDeck` compatable product.
+ *
+ * @param {number} vendor The numeric vendorId of the product.
+ * @param {number} product The numeric productId of the product.
+ * @returns {?Object} undefined, or the configuration if one existed.
+ */
+export function getStreamDeckProduct(vendor: number, product: number): IStreamDeckMetaData | undefined {
+    if (!DEVICE_MODELS[vendor]) {
+        return undefined;
+    }
+    return DEVICE_MODELS[vendor][product];
+}

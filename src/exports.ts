@@ -1,15 +1,16 @@
 import { devices } from "./hid/hid-async";
 import { DEVICE_MODELS } from "./models";
-import { StreamDeck as StreamDeckImpl } from "./stream-deck";
+import { StreamDeck as StreamDeckBase } from "./stream-deck";
 
 export { IImageLibrary, IImageLibraryCreator, IImageLibraryExtract, IImageRawOptions } from "./image-library";
 
 export { devices, setHidAsyncType, HidAsyncType } from "./hid/hid-async";
+export { StreamDeck as StreamDeckBase } from "./stream-deck";
 
 export * from "./models";
 
 // tslint:disable-next-line:no-empty-interface interface-name
-export interface StreamDeck extends StreamDeckImpl {
+export interface StreamDeck extends StreamDeckBase {
     on(event: "down" | "up", cb: (keyIndex: number) => any): this;
     on(event: "error", cb: (err: Error) => any): this;
     once(event: "down" | "up", cb: (keyIndex: number) => any): this;

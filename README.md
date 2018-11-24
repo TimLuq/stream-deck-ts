@@ -60,11 +60,10 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
 * [Planned Features](#planned-features)
 * [Contributing](#contributing)
 * [API](#api)
-  * [DEVICE_MODELS](#devicemodels)
-  * [PRODUCT_ELGATO_STREAMDECK](#productelgatostreamdeck)
-  * [PRODUCT_ELGATO_STREAMDECK_MINI](#productelgatostreamdeckmini)
-  * [VENDOR_ELGATO](#vendorelgato)
+  * [Constants](#constants)
   * [devices()](#devices)
+  * [getStreamDeckProduct(vendor, product)](#getstreamdeckproduct-vendor-product)
+  * [registerStreamDeckProduct(vendor, product, config)](#registerstreamdeckproduct-vendor-product-config)
   * [selectDevice([vendor[, product]])](#selectdevice-vendor-product)
   * [selectAllDevices([vendor[, product]])](#selectalldevices-vendor-product)
   * [setHidAsyncType(asyncMode)](#sethidasynctype-asyncmode)
@@ -92,6 +91,7 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
     * [streamDeck.setImageLibrary(library)](#streamdeck-setimagelibrary-library)
 	* [streamDeck.write(buffer)](#streamdeck-write-buffer)
 	* [streamDeck.writeMulti(buffers)](#streamdeck-writemulti-buffers)
+  * [Abstract class: StreamDeckBase](#abstract-class-streamdeckbase)
   * [Interface: IImageLibrary](#interface-iimagelibrary)
   	* [IImageLibrary.extract(options)](#iimagelibrary-extract-options)
   	* [IImageLibrary.flatten()](#iimagelibrary-flatten)
@@ -157,7 +157,9 @@ import { selectDevice } from "stream-deck-ts";
 
 ## API
 
-### DEVICE_MODELS
+### Constants
+
+#### Constant: DEVICE_MODELS
 
 - &lt;Object&lt;number, Object&lt;number, Object&gt;&gt;&gt; 
 
@@ -167,7 +169,9 @@ An object containing devices which are supported.
 - `DEVICE_MODELS[vendor][device].productName` &lt;string&gt; A name representing the product of the device.
 - `DEVICE_MODELS[vendor][device].vendorName` &lt;string&gt; A name representing the vendor of the device.
 
-### PRODUCT_ELGATO_STREAMDECK
+To get specific product information [`getStreamDeckProduct`](#getstreamdeckproduct-vendor-product) is the preferred solution.
+
+#### Constant: PRODUCT_ELGATO_STREAMDECK
 
 ```js
 export const PRODUCT_ELGATO_STREAMDECK = 96;
@@ -175,7 +179,7 @@ export const PRODUCT_ELGATO_STREAMDECK = 96;
 
 Exported constant to use as the `product` filter while selecting a device.
 
-### PRODUCT_ELGATO_STREAMDECK_MINI
+#### Constant: PRODUCT_ELGATO_STREAMDECK_MINI
 
 ```js
 export const PRODUCT_ELGATO_STREAMDECK_MINI = 99;
@@ -183,7 +187,7 @@ export const PRODUCT_ELGATO_STREAMDECK_MINI = 99;
 
 Exported constant to use as the `product` filter while selecting a device.
 
-### VENDOR_ELGATO
+#### Constant: VENDOR_ELGATO
 
 ```js
 export const VENDOR_ELGATO = 4057;
@@ -202,6 +206,35 @@ Exported constant to use as the `vendor` filter while selecting a device.
 * `object.path` &lt;string&gt; Path to the specific device.
 
 Get a list of connected HID devices.
+
+### getStreamDeckProduct (vendor, product)
+
+- `vendor` &lt;number&gt; A vendor identity number to register the product to.
+- `product` &lt;number&gt; A product identity number to register the product to.
+- Returns: &lt;Object | undefined&gt; Configuration if one exists.
+
+* `object.import` &lt;string&gt; Module name of the device implementation.
+* `object.productName` &lt;string&gt; Name of the product.
+* `object.vendorName` &lt;string&gt; Name of the vendor.
+
+Register a `StreamDeck` compatable product. When a device matching the product is selected the module path in `config.import` is loaded and instantiated.
+
+The module referenced by `config.import` must export a class named `default`. The exported class SHOULD extend [`StreamDeckBase`](#abstract-class-streamdeckbase).
+
+### registerStreamDeckProduct (vendor, product, config)
+
+- `vendor` &lt;number&gt; A vendor identity number to register the product to.
+- `product` &lt;number&gt; A product identity number to register the product to.
+- `config` &lt;Object&gt; The configuration object describing the product.
+- Returns: &lt;Object | undefined&gt; Previous configuration if one existed.
+
+* `config.import` &lt;string&gt; Module name of the device implementation.
+* `config.productName` &lt;string&gt; Name of the product.
+* `config.vendorName` &lt;string&gt; Name of the vendor.
+
+Register a `StreamDeck` compatable product. When a device matching the product is selected the module path in `config.import` is loaded and instantiated.
+
+The module referenced by `config.import` must export a class named `default`. The exported class SHOULD extend [`StreamDeckBase`](#abstract-class-streamdeckbase).
 
 ### selectDevice ([vendor[, product]])
 
@@ -490,9 +523,15 @@ The promise is rejected if an error is encountered during the write operation.
 
 ```javascript
 // Writes a total of 32 bytes of zero to the Stream Deck in two pages and waits for the last one to finish.
-streamDeck.write(Buffer.alloc(16));
-await streamDeck.write(Buffer.alloc(16));
+await streamDeck.writeMulti([
+	Buffer.alloc(16), Buffer.alloc(16)
+]);
 ```
+### Abstract class: StreamDeckBase
+
+Abstract base class which is a partial implementation and must be extended.
+
+To see which abstract properties and methods are required for a subclass check out the [source code for `StreamDeck`](https://github.com/TimLuq/stream-deck-ts/blob/master/src/stream-deck.ts) and look for the keyword `abstract`.
 
 ### Interface: IImageLibrary
 

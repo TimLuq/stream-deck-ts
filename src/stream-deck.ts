@@ -4,6 +4,12 @@ import { checkRGBValue } from "./helpers";
 import { HidAsync } from "./hid/hid-async";
 import { IImageLibrary, IImageLibraryCreator, IImageRawOptions } from "./image-library";
 
+/**
+ * Abstract base class which is a partial implementation and must be extended.
+ *
+ * To see which abstract properties and methods are required for a subclass
+ * check out the typings and look for the keyword `abstract`.
+ */
 export abstract class StreamDeck extends EventEmitter {
 
     /**

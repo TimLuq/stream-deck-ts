@@ -38,7 +38,7 @@ mockery.enable({
 });
 
 // Must be required after we register a mock for `node-hid`.
-const { selectDevice, selectAllDevices, setHidAsyncType, VENDOR_ELGATO, PRODUCT_ELGATO_STREAMDECK } = require('..');
+const { getStreamDeckProduct, registerStreamDeckProduct, selectDevice, selectAllDevices, setHidAsyncType, VENDOR_ELGATO, PRODUCT_ELGATO_STREAMDECK } = require('..');
 
 setHidAsyncType("emulated");
 
@@ -132,6 +132,19 @@ test('handle no matching products in selectAllDevices', async t => {
 		devicesStub.restore();
 		release();
 	}
+});
+
+test('product registration', async t => {
+	const prod = {
+		import: "@null/null/null.js",
+		productName: "Example",
+		vendorName: "Example",
+	};
+
+	t.is(getStreamDeckProduct(0xdeadbeef, 0xdeadbeef), undefined, "Before registeration undefined should be the product config.");
+	t.is(registerStreamDeckProduct(0xdeadbeef, 0xdeadbeef, prod), undefined, "Previous registration should be undefined.");
+	t.is(getStreamDeckProduct(0xdeadbeef, 0xdeadbeef), prod, "Getting the product config should return the registered one.");
+	t.is(registerStreamDeckProduct(0xdeadbeef, 0xdeadbeef, undefined), prod, "Previous registration should return the old config when overridden.");
 });
 
 
