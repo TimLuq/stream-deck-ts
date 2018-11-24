@@ -66,6 +66,11 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
 * [Planned Features](#planned-features)
 * [Contributing](#contributing)
 * [API](#api)
+  * [DEVICE_MODELS](#devicemodels)
+  * [PRODUCT_ELGATO_STREAMDECK](#productelgatostreamdeck)
+  * [PRODUCT_ELGATO_STREAMDECK_MINI](#productelgatostreamdeckmini)
+  * [VENDOR_ELGATO](#vendorelgato)
+  * [devices()](#devices)
   * [selectDevice([vendor[, product]])](#selectdevice-vendor-product)
   * [selectAllDevices([vendor[, product]])](#selectalldevices-vendor-product)
   * [Class: StreamDeck](#class-streamdeck)
@@ -89,7 +94,18 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
 	* [streamDeck.forEachKey(callback)](#streamdeck-foreachkey-callback)
     * [streamDeck.sendFeatureReport(buffer)](#streamdeck-sendfeaturereport-buffer)
     * [streamDeck.setBrightness(percentage)](#streamdeck-setbrightness-percentage)
+    * [streamDeck.setImageLibrary(library)](#streamdeck-setimagelibrary-library)
 	* [streamDeck.write(buffer)](#streamdeck-write-buffer)
+	* [streamDeck.writeMulti(buffers)](#streamdeck-writemulti-buffers)
+  * [Interface: IImageLibrary](#interface-iimagelibrary)
+  	* [IImageLibrary.extract(options)](#iimagelibrary-extract-options)
+  	* [IImageLibrary.flatten()](#iimagelibrary-flatten)
+  	* [IImageLibrary.resize(width, height)](#iimagelibrary-resize-width-height)
+  	* [IImageLibrary.toUint8Array()](#iimagelibrary-touint8array)
+  * [Interface: IImageLibraryCreator](#interface-iimagelibrarycreator)
+  	* [IImageLibraryCreator.createRaw(options)](#iimagelibrarycreator-createraw-data-rawoptions)
+  	* [IImageLibraryCreator.loadFile(filepath)](#iimagelibrarycreator-loadfile-filepath)
+  	* [IImageLibraryCreator.loadFileData(filedata)](#iimagelibrarycreator-loadfiledata-filedata)
 
 ## Example
 
@@ -141,30 +157,62 @@ import { selectDevice } from "stream-deck-ts";
 * Fill the entire panel with a single image, spread across all keys
 * Set the Stream Deck brightness
 * TypeScript support
-
-## Planned Features
-
-* [Hotplugging](https://github.com/Lange/node-elgato-stream-deck/issues/14)
-* [Key combinations](https://github.com/Lange/node-elgato-stream-deck/issues/9)
-* Support "pages" feature from the official Elgato Stream Deck software
-* [Text labels](https://github.com/Lange/node-elgato-stream-deck/issues/6)
-* [Changing the standby image](https://github.com/Lange/node-elgato-stream-deck/issues/11)
-
-## Contributing
-
-The elgato-stream-deck team enthusiastically welcomes contributions and project participation! There's a bunch of things you can do if you want to contribute! The [Contributor Guide](CONTRIBUTING.md) has all the information you need for everything from reporting bugs to contributing entire new features. Please don't hesitate to jump in if you'd like to, or even ask us questions if something isn't clear.
-
-All participants and maintainers in this project are expected to follow [Code of Conduct](CODE_OF_CONDUCT.md), and just generally be kind to each other.
-
-Please refer to the [Changelog](CHANGELOG.md) for project history details, too.
+* Multi device support
+* Optional user supplier image processing library
 
 ## API
+
+### DEVICE_MODELS
+
+- &lt;Object&lt;number, Object&lt;number, Object&gt;&gt;&gt; 
+
+An object containing devices which are supported.
+
+- `DEVICE_MODELS[vendor][device].import` &lt;string&gt; A path to the device implementation.
+- `DEVICE_MODELS[vendor][device].productName` &lt;string&gt; A name representing the product of the device.
+- `DEVICE_MODELS[vendor][device].vendorName` &lt;string&gt; A name representing the vendor of the device.
+
+### PRODUCT_ELGATO_STREAMDECK
+
+```js
+export const PRODUCT_ELGATO_STREAMDECK = 96;
+```
+
+Exported constant to use as the `product` filter while selecting a device.
+
+### PRODUCT_ELGATO_STREAMDECK_MINI
+
+```js
+export const PRODUCT_ELGATO_STREAMDECK_MINI = 99;
+```
+
+Exported constant to use as the `product` filter while selecting a device.
+
+### VENDOR_ELGATO
+
+```js
+export const VENDOR_ELGATO = 4057;
+```
+
+Exported constant to use as the `vendor` filter while selecting a device.
+
+### devices ()
+
+- Returns: &lt;Promise&lt;Object[]&gt;&gt;
+
+* `object.vendorId` &lt;number&gt; Numeric vendor id.
+* `object.productId` &lt;number&gt; Numeric product id.
+* `object.release` &lt;number&gt; Numeric release value.
+* `object.interface` &lt;number&gt; Interface number.
+* `object.path` &lt;string&gt; Path to the specific device.
+
+Get a list of connected HID devices.
 
 ### selectDevice ([vendor[, product]])
 
 - `vendor` &lt;number&gt; An optional vendor identity number to limit which device will be selected.
 - `product` &lt;number&gt; An optional product identity number to limit which device will be selected.
-- Returns: &lt;[StreamDeck](#Class_StreamDeck) | null&gt;
+- Returns: &lt;Promise&lt;[StreamDeck](#Class_StreamDeck) | null&gt;&gt;
 
 Select the first supported device. If no supported device is found `null` is returned.
 
@@ -172,9 +220,20 @@ Select the first supported device. If no supported device is found `null` is ret
 
 - `vendor` &lt;number&gt; An optional vendor identity number to limit which devices will be selected.
 - `product` &lt;number&gt; An optional product identity number to limit which devices will be selected.
-- Returns: &lt;Array&lt;[StreamDeck](#Class_StreamDeck)&gt;&gt;
+- Returns: &lt;Promise&lt;Array&lt;Promise&lt;[StreamDeck](#Class_StreamDeck)&gt;&gt;&gt;&gt;
 
-Select the first supported device. If no supported device is found `null` is returned.
+Get a list of all supported devices while they're being opened.
+
+### setHidAsyncType (type)
+
+- `type` &lt;string&gt; Sets which type of async provider should be used.
+
+The async provider type handles how async calls are made.
+
+- `auto` selects one of the other modes available to the system, based on priority.
+- `emulated` will emulate an async environment with microtasks while still running synchronously inside the main thread. This might be good for debugging or as a last resort fallback but should be avoided if possible.
+- `process` creates a [`forked`](https://nodejs.org/api/child_process.html#child_process_child_process_fork_modulepath_args_options) process to handle the USB communication which is first sent serialized over an IPC channel.
+- `worker` spins up a [`Worker`](https://nodejs.org/api/worker_threads.html) to handle the USB communication, which should be the most performant mode by using transferrable `ByteArray`s. But workers are not currently supported by `node-hid`.
 
 ### Class: StreamDeck
 
@@ -278,6 +337,10 @@ Synchronously clears the given `keyIndex`'s screen.
 streamDeck.clearKey(2);
 ```
 
+#### streamDeck .close ()
+
+Closes this reference to the device.
+
 #### streamDeck .fillColor (keyIndex, rgb)
 
 - `keyIndex` &lt;number&gt; Key to affect.
@@ -304,7 +367,7 @@ Synchronously sets the given `keyIndex`'s screen to a solid RGB color.
 ##### Example: set button 5 to solid blue
 
 ```javascript
-// Turn key 5 solid red.
+// Turn key 5 solid blue.
 streamDeck.fillColor(5, 0, 0, 0xFF);
 ```
 
@@ -404,17 +467,113 @@ Synchronously set the brightness of the Stream Deck. This affects all keys at on
 streamDeck.setBrightness(100);
 ```
 
+#### streamDeck .setImageLibrary (library)
+
+- `library` &lt;string | [IImageLibraryCreator](#interface-iimagelibrarycreator) | Promise&lt;IImageLibraryCreator&gt;&gt; An object capable to create image contexts or a string representing a module exporting such an object as `default`.
+- Returns: &lt;StreamDeck&gt;
+
+Allows users to switch image processing library to a non standard version.
+This might be because of the library providing better performance or image quality, or simply to minimize bloat when another image library is used somewhere else.
+
 #### streamDeck .write (buffer)
 
 - `buffer` &lt;[Buffer](https://nodejs.org/api/buffer.html) | Uint8Array&gt; Data to write.
-- Returns: &lt;StreamDeck&gt;
+- Returns: &lt;Promise&lt;number&gt;&gt; When written this resolves to the number of bytes
 
-Synchronously writes an arbitrary [`Buffer`](https://nodejs.org/api/buffer.html) instance to the Stream Deck.
-Throws if an error is encountered during the write operation.
+Asynchronously writes an arbitrary `Uint8Array` instance to the Stream Deck.
+The promise is rejected if an error is encountered during the write operation.
+
+#### streamDeck .writeMulti (buffers)
+
+- `buffers` &lt;Array&lt;[Buffer](https://nodejs.org/api/buffer.html) | Uint8Array&gt;&gt; Data buffers to write.
+- Returns: &lt;Promise&lt;number&gt;&gt; When written this resolves to the number of bytes
+
+Asynchronously writes a bunch of arbitrary `Uint8Array` instances to the Stream Deck.
+The promise is rejected if an error is encountered during the write operation.
 
 ##### Example: write a number of zeros to the stream deck
 
 ```javascript
-// Writes 16 bytes of zero to the Stream Deck.
+// Writes a total of 32 bytes of zero to the Stream Deck in two pages and waits for the last one to finish.
 streamDeck.write(Buffer.alloc(16));
+await streamDeck.write(Buffer.alloc(16));
 ```
+
+### Interface: IImageLibrary
+
+An image instance controlled by an image library.
+
+Any library implementing, or wrapped by an object implementing, this interface could be used for image operations.
+
+#### IImageLibrary .extract (options)
+
+- `options` &lt;Object&gt; Data to write.
+- Returns: &lt;[IImageLibrary](#interface-iimagelibrary) | Promise&lt;[IImageLibrary](#interface-iimagelibrary)&gt;&gt;
+
+Extract a section of the image.
+
+If this is a immutable data structure a clone of the original should be returned with the new 2d slice.
+A mutable structure should return the original but with a view which may be moved with another call to extract.
+
+* `options.left` &lt;number&gt; the distance from the left edge of the original
+* `options.top` &lt;number&gt; the distance from the top edge of the original
+* `options.width` &lt;number&gt; the width of this subsection
+* `options.height` &lt;number&gt; the height of this subsection
+
+#### IImageLibrary .flatten ()
+
+- Returns: &lt;[IImageLibrary](#interface-iimagelibrary) | Promise&lt;[IImageLibrary](#interface-iimagelibrary)&gt;&gt;
+
+Remove alpha channel if one exists.
+
+#### IImageLibrary .resize (width, height)
+
+- `width` &lt;number&gt; Width of the resulting image.
+- `height` &lt;number&gt; Height of the resulting image.
+- Returns: &lt;[IImageLibrary](#interface-iimagelibrary) | Promise&lt;[IImageLibrary](#interface-iimagelibrary)&gt;&gt;
+
+Resizes an image to the specified size.
+Interpolation and ratio perservation mode is up to the library or wrapper.
+However it is recommended that the image be applied in a `cover` fashion.
+
+#### IImageLibrary .toUint8Array ()
+
+- Returns: &lt;Uint8Array | Promise&lt;Uint8Array&gt;&gt;
+
+Get the RGB raw pixel bytes representing the image.
+
+### Interface: IImageLibraryCreator
+
+An object implementing this interface is tasked with instantiating image contexts using a library or a custom implementation.
+
+#### IImageLibraryCreator .createRaw (data, rawOptions)
+
+- `data` &lt;Uint8Array&gt; Raw RGB pixel data.
+- `rawOptions` &lt;Object&gt; Parameters describing the raw image.
+- Returns: &lt;[IImageLibrary](#interface-iimagelibrary) | Promise&lt;[IImageLibrary](#interface-iimagelibrary)&gt;&gt;
+
+Creates an image context containing the pixels given in the `data` argument.
+The image size and number of channels are specified in the `rawOptions` argument.
+
+- `rawOptions.channels` &lt;number&gt; The number of channels used. `4` is RGBA, `3` is RGB.
+- `rawOptions.height` &lt;number&gt; The height of the image.
+- `rawOptions.width` &lt;number&gt; The width of the image.
+
+The total number of bytes should be equal to `height * width * channels`.
+
+#### IImageLibraryCreator .loadFile (filepath)
+
+- `filepath` &lt;string&gt; Path to an image file.
+- Returns: &lt;[IImageLibrary](#interface-iimagelibrary) | Promise&lt;[IImageLibrary](#interface-iimagelibrary)&gt;&gt;
+
+If using a library exposing a way to read a file or support stream decoding such a function sould be used here.
+If no streaming optimization is available this could be implemented by doing an async `readFile` and passing the resulting data to [`loadFileData`](#iimagelibrarycreator-loadimagedata-filedata).
+
+#### IImageLibraryCreator .loadFileData (filedata)
+
+- `filedata` &lt;Uint8Array&gt; Bytes of some image format hoping to be decoded.
+- Returns: &lt;[IImageLibrary](#interface-iimagelibrary) | Promise&lt;[IImageLibrary](#interface-iimagelibrary)&gt;&gt;
+
+Creates an image context based on an existing image.
+Which image encodings is supported is determined by the library or implementor.
+Recommended formats are `PNG`, `JPEG`, and `SVG`.

@@ -9,6 +9,7 @@ import sinon from 'sinon';
 import test from 'ava';
 
 // Ours
+import { EventEmitter as CustomEventEmitter } from "../lib/event-emitter"
 import { validateWriteCall } from './helpers';
 
 class DummyHID extends EventEmitter {
@@ -37,7 +38,9 @@ mockery.enable({
 });
 
 // Must be required after we register a mock for `node-hid`.
-const { selectDevice, selectAllDevices, VENDOR_ELGATO, PRODUCT_ELGATO_STREAMDECK } = require('..');
+const { selectDevice, selectAllDevices, setHidAsyncType, VENDOR_ELGATO, PRODUCT_ELGATO_STREAMDECK } = require('..');
+
+setHidAsyncType("emulated");
 
 const semaphores = new Map();
 function aquireSemaphore(name) {
@@ -69,7 +72,7 @@ test('selectDevice returns null when there are no connected Stream Decks', async
 	const devicesStub = sinon.stub(mockNodeHID, 'devices');
 	try {
 		devicesStub.returns([]);
-		t.is(selectDevice(), null);
+		t.is(await selectDevice(), null);
 	} finally {
 		devicesStub.restore();
 		release();
@@ -81,7 +84,9 @@ test('selectAllDevices returns empty array when there are no connected Stream De
 	const devicesStub = sinon.stub(mockNodeHID, 'devices');
 	try {
 		devicesStub.returns([]);
-		const ds = selectAllDevices();
+		const sad = selectAllDevices();
+		t.true(typeof sad.then === "function");
+		const ds = await sad;
 		t.true(Array.isArray(ds));
 		t.is(ds.length, 0);
 	} finally {
@@ -94,7 +99,7 @@ test('selectAllDevices returns an array containing a promise when there are no c
 	let ds;
 	const release = await aquireSemaphore("devices");
 	try {
-		ds = selectAllDevices(VENDOR_ELGATO, PRODUCT_ELGATO_STREAMDECK);
+		ds = await selectAllDevices(VENDOR_ELGATO, PRODUCT_ELGATO_STREAMDECK);
 	} finally {
 		release();
 	}
@@ -138,10 +143,10 @@ test('fillColor(r, g, b)', async t => {
 	} finally {
 		release();
 	}
-	streamDeck.fillColor(0, 255, 0, 0);
+	await streamDeck.fillColor(0, 255, 0, 0);
 	await validateWriteCall(
 		t,
-		streamDeck.device.write,
+		streamDeck.device.messagePort.containers.get(streamDeck.device.devicePath).device.write,
 		[
 			'fillColor-red-page1.json',
 			'fillColor-red-page2.json'
@@ -268,8 +273,8 @@ test('down and up events', async t => {
 	}
 	
 	// press and release before any listeners
-	streamDeck.device.emit("data", Buffer.from([0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
-	streamDeck.device.emit("data", Buffer.from([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+	streamDeck.device[CustomEventEmitter.emitSymbol]("data", Buffer.from([0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+	streamDeck.device[CustomEventEmitter.emitSymbol]("data", Buffer.from([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
 	streamDeck.off('down', () => {});
 
 	// setup listeners and press, gather info, release
@@ -279,11 +284,11 @@ test('down and up events', async t => {
 	streamDeck.once('down', key => onceSpy(key));
 	streamDeck.on('down', key => downSpy(key));
 	streamDeck.on('up', key => upSpy(key));
-	streamDeck.device.emit("data", Buffer.from([0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
-	streamDeck.device.emit("foo", null);
+	streamDeck.device[CustomEventEmitter.emitSymbol]("data", Buffer.from([0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+	streamDeck.device[CustomEventEmitter.emitSymbol]("foo", null);
 	const hasKeys = streamDeck.hasPressedKeys;
 	const pressedKeys = streamDeck.pressedKeys;
-	streamDeck.device.emit("data", Buffer.from([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+	streamDeck.device[CustomEventEmitter.emitSymbol]("data", Buffer.from([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
 
 	// validate that the event got emitted using the correct button
 	t.is(downSpy.getCall(0).args[0], 0);
@@ -299,7 +304,7 @@ test('down and up events', async t => {
 	t.is(pressedKeys[0], 0, "first key of pressedKeys when a single key is pressed");
 	
 	// trigger another key press
-	streamDeck.device.emit("data", Buffer.from([0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+	streamDeck.device[CustomEventEmitter.emitSymbol]("data", Buffer.from([0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
 	
 	// validate the number of times listeners has been called
 	t.is(downSpy.callCount, 2);
@@ -307,7 +312,7 @@ test('down and up events', async t => {
 	t.is(onceSpy.callCount, 1, "expects once-event to only be called once");
 
 	// release all keys
-	streamDeck.device.emit("data", Buffer.from([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
+	streamDeck.device[CustomEventEmitter.emitSymbol]("data", Buffer.from([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]));
 });
 
 test('forwards error events from the device', async t => {
@@ -335,7 +340,7 @@ test('forwards error events from the device', async t => {
 			resolve();
 		}, 50);
 		streamDeck.on('error', cb);
-		streamDeck.device.emit('error', new Error('Test'));
+		streamDeck.device[CustomEventEmitter.emitSymbol]('error', new Error('Test'));
 	});
 });
 
@@ -359,11 +364,11 @@ test('setBrightness', async t => {
 	} finally {
 		release();
 	}
-	streamDeck.setBrightness(100);
-	streamDeck.setBrightness(0);
+	await streamDeck.setBrightness(100);
+	await streamDeck.setBrightness(0);
 
-	t.deepEqual(Array.from(streamDeck.device.sendFeatureReport.getCall(1).args[0]), [0x05, 0x55, 0xaa, 0xd1, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
-	t.deepEqual(Array.from(streamDeck.device.sendFeatureReport.getCall(0).args[0]), [0x05, 0x55, 0xaa, 0xd1, 0x01, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+	t.deepEqual(Array.from(streamDeck.device.messagePort.containers.get(streamDeck.device.devicePath).device.sendFeatureReport.getCall(1).args[0]), [0x05, 0x55, 0xaa, 0xd1, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+	t.deepEqual(Array.from(streamDeck.device.messagePort.containers.get(streamDeck.device.devicePath).device.sendFeatureReport.getCall(0).args[0]), [0x05, 0x55, 0xaa, 0xd1, 0x01, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
 
 	t.throws(() => streamDeck.setBrightness(101));
 	t.throws(() => streamDeck.setBrightness(-1));

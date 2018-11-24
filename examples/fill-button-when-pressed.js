@@ -3,7 +3,7 @@
 const { resolve } = require("path");
 const { selectDevice } = require("..");
 
-Promise.resolve(selectDevice()).then((streamDeck) => {
+exports.default = Promise.resolve(selectDevice()).then((streamDeck) => {
 
 	streamDeck.on("down", (keyIndex) => {
 		// Fill the pressed key with an image of the GitHub logo.
@@ -23,4 +23,6 @@ Promise.resolve(selectDevice()).then((streamDeck) => {
 	streamDeck.on("error", (error) => {
 		console.error("HID error:", error);
 	});
+
+	return streamDeck;
 });

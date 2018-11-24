@@ -13,9 +13,9 @@
     "sharp": "^0.21.0"
   },
   "devDependencies": {
-    "@types/node": "^10.11.7",
+    "@types/node": "^10.12.5",
     "@types/node-hid": "^0.7.0",
-    "@types/sharp": "^0.17.10",
+    "@types/sharp": "^0.21.0",
     "ava": "^0.25.0",
     "coveralls": "^3.0.2",
     "mockery": "^2.1.0",

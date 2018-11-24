@@ -1,14 +1,13 @@
 
 import { StreamDeck } from "../stream-deck";
 
-import { devices } from "node-hid";
 import { IImageLibrary } from "../image-library";
 
 const NUM_PIXELS_PG0_BYTES = 0x03c3;
 const NUM_TOTAL_PIXEL_BYTES = 80 * 80 * 3;
 
-const DEV_VENDOR  = 0x0fd9;
-const DEV_PRODUCT = 0x0063;
+export const DEV_VENDOR  = 0x0fd9;
+export const DEV_PRODUCT = 0x0063;
 
 export default class ElgatoStreamDeckMini extends StreamDeck {
     public readonly iconSize = 80;
@@ -21,11 +20,8 @@ export default class ElgatoStreamDeckMini extends StreamDeck {
     ];
     protected readonly pagePacketSize = 1024;
 
-    public constructor(devicePath?: string) {
-        super(devicePath === undefined ? devices()
-            .filter((device) => device.vendorId === DEV_VENDOR && device.productId === DEV_PRODUCT)
-            .map((x) => x.path)[0] as string
-            : devicePath);
+    public constructor(devicePath: string) {
+        super(devicePath);
     }
 
     public fillImage(keyIndex: number, imageBuffer: Uint8Array) {
@@ -67,16 +63,17 @@ export default class ElgatoStreamDeckMini extends StreamDeck {
             throw Error("Unexpected amounts of bytes, got " + pixels + " but expected " + NUM_TOTAL_PIXEL_BYTES);
         }
         this._writePage0(keyIndex, pixels);
-        const header = [
+        const header = new Uint8Array([
             0x02, 0x01, 0x00, 0x00, 0x00, keyIndex + 1, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ];
+        ]);
         const hdrlen = header.length;
         const pcklen = this.pagePacketSize;
         const pxllen = pcklen - hdrlen;
-        const packet = Buffer.alloc(pcklen);
-        packet.set(header);
+        const ret: Uint8Array[] = [];
         for (let i = 1, pxlusd = NUM_PIXELS_PG0_BYTES; pxlusd < NUM_TOTAL_PIXEL_BYTES; i++) {
+            const packet = new Uint8Array(pcklen);
+            packet.set(header);
             packet[2] = i;
             const after = pxlusd + pxllen;
             if (after >= NUM_TOTAL_PIXEL_BYTES) {
@@ -87,10 +84,10 @@ export default class ElgatoStreamDeckMini extends StreamDeck {
                 packet.set(pixels.subarray(pxlusd, after), hdrlen);
             }
             pxlusd = after;
-            this.write(packet);
+            ret.push(packet);
         }
 
-        return this;
+        return this.writeMulti(ret);
     }
 
     protected async processImage(image: IImageLibrary): Promise<Uint8Array> {
@@ -115,9 +112,9 @@ export default class ElgatoStreamDeckMini extends StreamDeck {
      *
      * @private
      * @param {number} keyIndex The key to write to 0 - 14
-     * @returns {ElgatoStreamDeckMini}
+     * @returns {Promise<number>}
      */
-    protected _writePage0(keyIndex: number, pixels: Uint8Array): this {
+    protected _writePage0(keyIndex: number, pixels: Uint8Array): Promise<number> {
         const header = [
             0x02, 0x01, 0x00, 0x00, 0x00,
             keyIndex + 1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

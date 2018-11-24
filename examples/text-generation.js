@@ -2,9 +2,7 @@
 
 const sharp = require("sharp");
 const { resolve } = require("path");
-const streamDeckP = require("..").selectDevice();
-
-const { writeFileSync } = require("fs");
+const { selectDevice } = require("..");
 
 const xmlescapes = {
 	">": "gt",
@@ -23,7 +21,7 @@ function randColor() {
 	return r.toString(16) + g.toString(16) + b.toString(16);
 }
 
-Promise.resolve(streamDeckP).then((streamDeck) => {
+exports.default = Promise.resolve(selectDevice()).then((streamDeck) => {
 	if (!streamDeck) {
 		throw new Error("No stream deck found.");
 	}
@@ -66,4 +64,6 @@ Promise.resolve(streamDeckP).then((streamDeck) => {
 	streamDeck.on("error", error => {
 		console.error(error);
 	});
+
+	return streamDeck;
 });

@@ -2,6 +2,7 @@ const symListeners = Symbol("emitterListeners");
 export const emit = Symbol("emitterEmit");
 
 export abstract class EventEmitter {
+    public static readonly emitSymbol = emit;
     private readonly [symListeners] = new Map<string, [Array<(arg: any) => any>, Array<(arg: any) => any>]>();
 
     public on(event: string, cb: (arg: any) => any): this {

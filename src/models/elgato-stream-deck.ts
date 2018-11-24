@@ -1,8 +1,6 @@
 
 import { StreamDeck } from "../stream-deck";
 
-import { devices } from "node-hid";
-
 const NUM_FIRST_PAGE_PIXELS = 2583;
 const NUM_SECOND_PAGE_PIXELS = 2601;
 
@@ -10,8 +8,8 @@ const NUM_FIRST_PAGE_PIXEL_BYTES = NUM_FIRST_PAGE_PIXELS * 3;
 const NUM_SECOND_PAGE_PIXEL_BYTES = NUM_SECOND_PAGE_PIXELS * 3;
 const NUM_TOTAL_PIXEL_BYTES = NUM_FIRST_PAGE_PIXEL_BYTES + NUM_SECOND_PAGE_PIXEL_BYTES;
 
-const DEV_VENDOR  = 0x0fd9;
-const DEV_PRODUCT = 0x0060;
+export const DEV_VENDOR  = 0x0fd9;
+export const DEV_PRODUCT = 0x0060;
 
 export default class ElgatoStreamDeck extends StreamDeck {
     public readonly iconSize = 72;
@@ -25,20 +23,17 @@ export default class ElgatoStreamDeck extends StreamDeck {
     ];
     protected readonly pagePacketSize = 8191;
 
-    public constructor(devicePath?: string) {
-        super(devicePath === undefined ? devices()
-            .filter((device) => device.vendorId === DEV_VENDOR && device.productId === DEV_PRODUCT)
-            .map((x) => x.path)[0] as string
-            : devicePath);
+    public constructor(devicePath: string) {
+        super(devicePath);
     }
 
-    protected writeImagePage(keyIndex: number, pixels: Uint8Array) {
+    protected writeImagePage(keyIndex: number, pixels: Uint8Array): Promise<number> {
         if (pixels.length !== NUM_TOTAL_PIXEL_BYTES) {
             throw Error("Unexpected amounts of bytes, got " + pixels + " but expected " + NUM_TOTAL_PIXEL_BYTES);
         }
-        this._writePage1(keyIndex, pixels);
-        this._writePage2(keyIndex, pixels);
-        return this;
+        const a = this._writePage1(keyIndex, pixels);
+        const b = this._writePage2(keyIndex, pixels);
+        return Promise.all([a, b]).then(([x, y]) => x + y);
     }
 
     /**
@@ -47,9 +42,9 @@ export default class ElgatoStreamDeck extends StreamDeck {
      * @private
      * @param {number} keyIndex The key to write to 0 - 14
      * @param {Uint8Array} pixels Full image data for extraction to page 1
-     * @returns {ElgatoStreamDeck}
+     * @returns {Promise<number>}
      */
-    protected _writePage1(keyIndex: number, pixels: Uint8Array): this {
+    protected _writePage1(keyIndex: number, pixels: Uint8Array): Promise<number> {
         const header = Buffer.from([
             0x02, 0x01, 0x01, 0x00, 0x00, keyIndex + 1, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -75,9 +70,9 @@ export default class ElgatoStreamDeck extends StreamDeck {
      * @private
      * @param {number} keyIndex The key to write to 0 - 14
      * @param {Uint8Array} pixels Image data for page 2
-     * @returns {ElgatoStreamDeck}
+     * @returns {Promise<number>}
      */
-    protected _writePage2(keyIndex: number, pixels: Uint8Array): this {
+    protected _writePage2(keyIndex: number, pixels: Uint8Array): Promise<number> {
         const header = Buffer.from([
             0x02, 0x01, 0x02, 0x00, 0x01, keyIndex + 1, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

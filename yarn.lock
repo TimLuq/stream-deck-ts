@@ -157,13 +157,13 @@
   version "0.7.0"
   resolved "http://registry.npmjs.org/@types/node-hid/-/node-hid-0.7.0.tgz#f696f39c528059116236e41df90c8fcba077d711"
 
-"@types/node@*", "@types/node@^10.11.7":
+"@types/node@*", "@types/node@^10.12.5":
   version "10.12.5"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.12.5.tgz#7e7ea1a9b34d2c8d704cb0b755dffbcda34741ad"
 
-"@types/sharp@^0.17.10":
-  version "0.17.10"
-  resolved "https://registry.yarnpkg.com/@types/sharp/-/sharp-0.17.10.tgz#4f546861c53fae2b1bffcdd1ae7e691cc68afa52"
+"@types/sharp@^0.21.0":
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/@types/sharp/-/sharp-0.21.0.tgz#e364b345c70e5924a5c626aaccaa236e0cfc2455"
   dependencies:
     "@types/node" "*"
 

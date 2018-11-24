@@ -2,8 +2,7 @@
 
 const { selectDevice } = require("..");
 
-Promise.resolve(selectDevice()).then(function (streamDeck) {
-
+exports.default = Promise.resolve(selectDevice()).then(function (streamDeck) {
 	// Fill it white so we can see the brightness changes
 	streamDeck.forEachKey((k, d) => {
 		return d.fillColor(k, 0xFFFFFF);
@@ -18,4 +17,6 @@ Promise.resolve(selectDevice()).then(function (streamDeck) {
 	streamDeck.on("error", (error) => {
 		console.error("HID error:", error);
 	});
+
+	return streamDeck;
 });

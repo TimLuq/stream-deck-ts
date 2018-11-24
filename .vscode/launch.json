@@ -12,6 +12,33 @@
             "outFiles": [
                 "${workspaceFolder}/lib/**/*.js"
             ],
+            "runtimeArgs": ["--experimental-worker"],
+            "sourceMaps": true,
+            "showAsyncStacks": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "example - brightness",
+            "program": "${workspaceFolder}/example.js",
+            "outFiles": [
+                "${workspaceFolder}/lib/**/*.js"
+            ],
+            "args": [
+                "brightness"
+            ],
+            "sourceMaps": true,
+            "showAsyncStacks": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "rapid-fill",
+            "program": "${workspaceFolder}/examples/rapid-fill.js",
+            "outFiles": [
+                "${workspaceFolder}/lib/**/*.js"
+            ],
+            "args": [ ],
             "sourceMaps": true,
             "showAsyncStacks": true
         },
@@ -23,6 +50,35 @@
             "outFiles": [
                 "${workspaceFolder}/lib/**/*.js"
             ],
+            "args": [],
+            "sourceMaps": true,
+            "showAsyncStacks": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "brightness (process)",
+            "program": "${workspaceFolder}/examples/brightness.js",
+            "outFiles": [
+                "${workspaceFolder}/lib/**/*.js"
+            ],
+            "args": [
+                "--hidAsyncType=process"
+            ],
+            "sourceMaps": true,
+            "showAsyncStacks": true
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "brightness (emulated)",
+            "program": "${workspaceFolder}/examples/brightness.js",
+            "outFiles": [
+                "${workspaceFolder}/lib/**/*.js"
+            ],
+            "args": [
+                "--hidAsyncType=emulated"
+            ],
             "sourceMaps": true,
             "showAsyncStacks": true
         },
@@ -33,6 +89,9 @@
             "program": "${workspaceFolder}/examples/text-generation.js",
             "outFiles": [
                 "${workspaceFolder}/lib/**/*.js"
+            ],
+            "args": [
+                "--hidAsyncType=emulated"
             ],
             "sourceMaps": true,
             "showAsyncStacks": true

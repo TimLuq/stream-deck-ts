@@ -3,7 +3,7 @@
 const { resolve } = require("path");
 const { selectDevice } = require("..");
 
-Promise.resolve(selectDevice()).then((streamDeck) => {
+exports.default = Promise.resolve(selectDevice()).then((streamDeck) => {
 
 	console.log("Press even buttons to show the first image, and odd buttons to show the second image.");
 
@@ -47,4 +47,6 @@ Promise.resolve(selectDevice()).then((streamDeck) => {
 	streamDeck.on("error", error => {
 		console.error("HID error:", error);
 	});
+
+	return streamDeck;
 });

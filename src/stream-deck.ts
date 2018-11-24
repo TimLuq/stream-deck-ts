@@ -1,8 +1,7 @@
 import { emit, EventEmitter } from "./event-emitter";
 
-import { HID } from "node-hid";
-
 import { checkRGBValue } from "./helpers";
+import { HidAsync } from "./hid/hid-async";
 import { IImageLibrary, IImageLibraryCreator, IImageRawOptions } from "./image-library";
 
 export abstract class StreamDeck extends EventEmitter {
@@ -52,7 +51,7 @@ export abstract class StreamDeck extends EventEmitter {
     /**
      * The connected device.
      */
-    protected device: HID;
+    protected device: HidAsync;
 
     /**
      * The current state of key presses.
@@ -115,7 +114,7 @@ export abstract class StreamDeck extends EventEmitter {
         if (!devicePath) {
             throw new Error("No Stream Decks are connected.");
         } else {
-            this.device = new HID(devicePath);
+            this.device = new HidAsync(devicePath);
         }
 
         this.keyState = 0;
@@ -196,22 +195,37 @@ export abstract class StreamDeck extends EventEmitter {
      * Writes a Buffer to the Stream Deck.
      *
      * @param {Uint8Array} buffer The buffer written to the Stream Deck
-     * @returns {StreamDeck} this
+     * @returns {Promise<number>} Resolves to the number of bytes written
      */
-    public write(buffer: Uint8Array): this {
-        this.device.write(Array.from(buffer));
-        return this;
+    public write(buffer: Uint8Array): Promise<number> {
+        return this.device.write(buffer);
+    }
+
+    /**
+     * Writes a Buffer to the Stream Deck.
+     *
+     * @param {Uint8Array[]} buffers A list of buffers to be written to the Stream Deck
+     * @returns {Promise<number>} Resolves to the number of bytes written
+     */
+    public writeMulti(buffers: Uint8Array[]): Promise<number> {
+        return this.device.writeMulti(buffers);
     }
 
     /**
      * Sends a HID feature report to the Stream Deck.
      *
      * @param {Uint8Array} buffer The buffer send to the Stream Deck.
-     * @returns {StreamDeck} this
+     * @returns {Promise<number>} Resolves to the number of bytes written
      */
-    public sendFeatureReport(buffer: Uint8Array): this {
-        this.device.sendFeatureReport(buffer as ArrayLike<number> as number[]);
-        return this;
+    public sendFeatureReport(buffer: Uint8Array): Promise<number> {
+        return this.device.sendFeatureReport(buffer);
+    }
+
+    /**
+     * Closes this reference to the device.
+     */
+    public close(): void {
+        this.device.close();
     }
 
     /**
@@ -221,11 +235,11 @@ export abstract class StreamDeck extends EventEmitter {
      * @param {number} r The color's red value. 0 - 255
      * @param {number?} g The color's green value. 0 - 255
      * @param {number?} b The color's blue value. 0 -255
-     * @return {StreamDeck} this
+     * @return {Promise<number>} Resolves to the number of bytes written.
      */
-    public fillColor(keyIndex: number, rgb: number): this;
-    public fillColor(keyIndex: number, r: number, g: number, b: number): this;
-    public fillColor(keyIndex: number, r: number, g?: number, b?: number): this {
+    public fillColor(keyIndex: number, rgb: number): Promise<number>;
+    public fillColor(keyIndex: number, r: number, g: number, b: number): Promise<number>;
+    public fillColor(keyIndex: number, r: number, g?: number, b?: number): Promise<number> {
         this.checkValidKeyIndex(keyIndex);
 
         if (g === undefined || b === undefined) {
@@ -286,9 +300,9 @@ export abstract class StreamDeck extends EventEmitter {
      *
      * @param {number} keyIndex The key to fill 0 - 14
      * @param {string} filePath A file path to an image file
-     * @returns {Promise<StreamDeck>} Resolves when the file has been written
+     * @returns {Promise<number>} Resolves to the number of bytes that has been written
      */
-    public async fillImageFromFile(keyIndex: number, filePath: string): Promise<this> {
+    public async fillImageFromFile(keyIndex: number, filePath: string): Promise<number> {
         this.checkValidKeyIndex(keyIndex);
         const imglib = await this.imageLibrary;
         const imgins = await imglib.loadFile(filePath);
@@ -306,9 +320,9 @@ export abstract class StreamDeck extends EventEmitter {
      * @param {Object} [rawOptions.height] Height of the raw pixel image.
      * @param {Object} [rawOptions.width] Width of the raw pixel image.
      */
-    public async fillPanel(imagePathOrBuffer: Uint8Array | string): Promise<this>;
-    public async fillPanel(imagePathOrBuffer: Uint8Array, rawOptions: IImageRawOptions): Promise<this>;
-    public async fillPanel(imagePathOrBuffer: Uint8Array | string, rawOptions?: IImageRawOptions): Promise<this> {
+    public async fillPanel(imagePathOrBuffer: Uint8Array | string): Promise<number>;
+    public async fillPanel(imagePathOrBuffer: Uint8Array, rawOptions: IImageRawOptions): Promise<number>;
+    public async fillPanel(imagePathOrBuffer: Uint8Array | string, rawOptions?: IImageRawOptions): Promise<number> {
         const iconHeight = this.iconSize;
         const iconWidth = this.iconSize;
         const cols = this.buttonColumns;
@@ -333,6 +347,7 @@ export abstract class StreamDeck extends EventEmitter {
             }
         }
 
+        const ret: Array<Promise<number>> = [];
         for (const button of buttons) {
             const part = await image.extract({
                 height: iconHeight,
@@ -340,10 +355,10 @@ export abstract class StreamDeck extends EventEmitter {
                 top: button.y * iconHeight,
                 width: iconWidth,
             });
-            this.fillImage(button.index, await part.toUint8Array());
+            ret.push(this.fillImage(button.index, await part.toUint8Array()));
         }
 
-        return this;
+        return Promise.all(ret).then((a) => a.reduce((x, y) => x + y, 0));
     }
 
     /**
@@ -414,5 +429,5 @@ export abstract class StreamDeck extends EventEmitter {
         return i1.toUint8Array();
     }
 
-    protected abstract writeImagePage(keyIndex: number, pixels: Uint8Array): this;
+    protected abstract writeImagePage(keyIndex: number, pixels: Uint8Array): Promise<number>;
 }

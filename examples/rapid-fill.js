@@ -2,15 +2,15 @@
 
 const { selectDevice } = require("..");
 
-Promise.resolve(selectDevice()).then((streamDeck) => {
+const fps = 4; // target 4 fps
+
+exports.default = Promise.resolve(selectDevice()).then((streamDeck) => {
 
 	streamDeck.on("error", error => {
 		console.error(error);
 	});
 
-	const fps = 4; // target 4 fps
-
-	setInterval(() => {
+	let id = setInterval(() => {
 		streamDeck.forEachKey((k, d) => {
 			const rgb = Math.round(Math.random() * 0xFFFFFF);
 			let hex = rgb.toString(16);
@@ -21,4 +21,14 @@ Promise.resolve(selectDevice()).then((streamDeck) => {
 			d.fillColor(k, rgb);
 		});
 	}, 1000 / fps);
+
+	return Object.assign(streamDeck, {
+		close() {
+			if (id !== null) {
+				clearInterval(id);
+				id = null;
+			}
+			Object.getPrototypeOf(this).close.call(this);
+		}
+	});
 });

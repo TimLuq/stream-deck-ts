@@ -1,4 +1,4 @@
-import { default as sharp } from "sharp";
+import sharp from "sharp";
 
 export interface IImageLibraryExtract {
     top: number;
@@ -24,12 +24,12 @@ export interface IImageLibrary {
     flatten(): IImageLibrary | PromiseLike<IImageLibrary>;
     /** Resize an image to a specific size. */
     resize(width: number, height: number): IImageLibrary | PromiseLike<IImageLibrary>;
-
+    /** Get the RGB raw pixel bytes representing the image. */
     toUint8Array(): Uint8Array | PromiseLike<Uint8Array>;
 }
 
 export interface IImageRawOptions {
-    channels: number;
+    channels: 1 | 2 | 3 | 4;
     height: number;
     width: number;
 }
@@ -59,9 +59,9 @@ interface IOverrideMethods {
 const lib = {
     _defLib: null as (null | Promise<typeof sharp>),
 
-    _sharpProxy(img: sharp.SharpInstance): sharp.SharpInstance & IOverrideMethods {
-        return new Proxy<sharp.SharpInstance>(img, {
-            get(target: sharp.SharpInstance, p: PropertyKey, receiver: any) {
+    _sharpProxy(img: sharp.Sharp): sharp.Sharp & IOverrideMethods {
+        return new Proxy<sharp.Sharp>(img, {
+            get(target: sharp.Sharp, p: PropertyKey, receiver: any) {
                 if (p === "toUint8Array") {
                     return () => target.raw().toBuffer();
                 }
@@ -74,7 +74,7 @@ const lib = {
                 }
                 return (target as any)[p];
             },
-        }) as sharp.SharpInstance & IOverrideMethods;
+        }) as sharp.Sharp & IOverrideMethods;
     },
 
     async _load(file: string | Buffer): Promise<IImageLibrary> {
