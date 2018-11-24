@@ -2,13 +2,7 @@
 [![npm version](https://img.shields.io/npm/v/stream-deck-ts.svg)](https://npm.im/stream-deck-ts)
 [![license](https://img.shields.io/npm/l/stream-deck-ts.svg)](https://npm.im/stream-deck-ts)
 
-
-> ❗ Please note that `stream-deck-ts` is **NOT a standalone application**. It is not something you download and run on its own. It is not an alternative to the [official Stream Deck program provided by Elgato](https://www.elgato.com/en/gaming/downloads). Instead, `stream-deck-ts` is a code library which provides an API to the Stream Deck. Developers can use this API to make their own applications which interface with the Stream Deck.
->
-> To further clarify: **this is not an installable program**. There is no user interface, and you cannot do anything with this library on its own. Out of the box, this library does nothing. It's purpose is to provide tools for programmers to **build** programs from the ground up which interact with a Stream Deck.
->
-> This is a tool for developers to use. It is not a program for end users. It cannot and will not replace the official Stream Deck program. That is not its goal. However, it does enable someone to more easily write a program which *does* do that.
-
+This is a library for developers to use. It is not a program for end users. It cannot and will not replace the official Stream Deck program. That is not its goal. However, it does enable someone to more easily write a program which *does* do that.
 
 ## Supported devices
 
