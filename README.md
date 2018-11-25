@@ -1,4 +1,4 @@
-# elgato-stream-deck
+# stream-deck-ts
 [![Build Status](https://travis-ci.org/TimLuq/stream-deck-ts.svg?branch=master)](https://travis-ci.org/TimLuq/stream-deck-ts)
 [![npm version](https://img.shields.io/npm/v/stream-deck-ts.svg)](https://npm.im/stream-deck-ts)
 [![license](https://img.shields.io/npm/l/stream-deck-ts.svg)](https://npm.im/stream-deck-ts)
@@ -60,8 +60,6 @@ However, in the event that installation _does_ fail (**or if you are on a platfo
 
 * [Example](#example)
 * [Features](#features)
-* [Planned Features](#planned-features)
-* [Contributing](#contributing)
 * [API](#api)
   * [Constants](#constants)
   * [devices()](#devices)
