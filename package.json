@@ -8,13 +8,13 @@
   "types": "build/exports.d.ts",
   "license": "MIT",
   "dependencies": {
-    "node-hid": "^0.7.3"
+    "node-hid": "^0.7.4"
   },
   "optionalDependencies": {
     "sharp": "^0.21.0"
   },
   "devDependencies": {
-    "@types/node": "^10.12.5",
+    "@types/node": "^10.12.10",
     "@types/node-hid": "^0.7.0",
     "@types/sharp": "^0.21.0",
     "ava": "^0.25.0",
@@ -23,11 +23,13 @@
     "nyc": "^13.1.0",
     "sharp": "^0.21.0",
     "sinon": "^7.1.1",
-    "standard-version": "^4.4.0"
+    "standard-version": "^4.4.0",
+    "typescript": "^3.1.6"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.json --module commonjs --outDir ./lib",
-    "prerelease": "npm run build && npm t",
+    "ci": "npm run build && npm test",
+    "prerelease": "npm run build && npm test",
     "release": "standard-version",
     "postrelease": "npm publish && git push --follow-tags",
     "test": "nyc ava",
