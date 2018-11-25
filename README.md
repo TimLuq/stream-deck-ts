@@ -3,6 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/stream-deck-ts.svg)](https://npm.im/stream-deck-ts)
 [![license](https://img.shields.io/npm/l/stream-deck-ts.svg)](https://npm.im/stream-deck-ts)
 [![dependencies Status](https://david-dm.org/TimLuq/stream-deck-ts/status.svg)](https://david-dm.org/TimLuq/stream-deck-ts)
+[![Coverage Status](https://coveralls.io/repos/github/TimLuq/stream-deck-ts/badge.svg?branch=master)](https://coveralls.io/github/TimLuq/stream-deck-ts?branch=master)
 
 This is a library for developers to use. It is not a program for end users. It cannot and will not replace the official Stream Deck program. That is not its goal. However, it does enable someone to more easily write a program which *does* do that.
 
